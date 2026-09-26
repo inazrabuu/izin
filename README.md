@@ -61,11 +61,11 @@ and two buttons.
 
 ## Roadmap
 
-| Milestone                      | Focus                                                                                                                |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **v0.1** — Prove the hard part | Idempotent requests, durable resume, minimal React inbox, webhook notifications, bare-Python SDK + LangGraph adapter |
-| **v0.2** — Make it usable      | Timeouts, escalation, Slack / WhatsApp / email, `modify` verdict, CrewAI + Claude Agent SDK adapters, audit export   |
-| **v0.3** — Survive at volume   | Policy engine and auto-decisions, OIDC, analytics, bulk decisions                                                    |
+| Milestone                       | Focus                                                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **v0.1** >> Prove the hard part | Idempotent requests, durable resume, minimal React inbox, webhook notifications, bare-Python SDK + LangGraph adapter |
+| **v0.2** >> Make it usable      | Timeouts, escalation, Slack / WhatsApp / email, `modify` verdict, CrewAI + Claude Agent SDK adapters, audit export   |
+| **v0.3** >> Survive at volume   | Policy engine and auto-decisions, OIDC, analytics, bulk decisions                                                    |
 
 ## Non-goals
 
