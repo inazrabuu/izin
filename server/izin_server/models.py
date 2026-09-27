@@ -49,12 +49,12 @@ class OnTimeout(enum.StrEnum):
   ESCALATE = "escalate"
 
 class RequestStatus(enum.StrEnum):
-  PENDING = "pending"
-  APPROVED = "approved"
-  DENIED = "denied"
-  ESCALATED = "escalated"
-  EXPIRED = "expired"
-  CONSUMED = "consumed"
+  PENDING = "PENDING"
+  APPROVED = "APPROVED"
+  DENIED = "DENIED"
+  ESCALATED = "ESCALATED"
+  EXPIRED = "EXPIRED"
+  CONSUMED = "CONSUMED"
 
 class Verdict(enum.StrEnum):
   APPROVE = "approve"
@@ -72,13 +72,17 @@ def str_enum(e: type[enum.StrEnum]) -> SAEnum:
     e,
     name=e.__name__.lower(),
     native_enum=False,
-    create_constraint=True,
+    create_constraint=False,
     length=16,
     values_callable=lambda members: [m.value for m in members]
   )
 
+def enum_check(column: str, e: type[enum.StrEnum]) -> CheckConstraint:
+  allowed = ", ".join(f"'{m.value}'" for m in e)
+  return CheckConstraint(f"{column} IN ({allowed})", name=f"{column}_valid")
+
 def uuid_pk():
-  return mapped_column(primary_key=True, server_default=text("gen_random_uuid"))
+  return mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
 
 def created_at():
   return mapped_column(server_default=text("now()"))
@@ -86,6 +90,10 @@ def created_at():
 # ----------------- config tables ------------------
 class Action(Base):
   __tablename__ = "actions"
+  __table_args__ = (
+    enum_check("risk_level", RiskLevel),
+    enum_check("on_timeout", OnTimeout)
+  )
   
   id: Mapped[uuid.UUID] = uuid_pk()
   name: Mapped[str] = mapped_column(String(100), unique=True)
@@ -107,7 +115,7 @@ class Principal(Base):
   name: Mapped[str] = mapped_column(String(200))
   email: Mapped[str | None] = mapped_column(String(320), unique=True)
   phone: Mapped[str | None] = mapped_column(String(32))
-  roles: Mapped[list[str]] = mapped_column(ARRAY(text), server_default=text("'{}'"))
+  roles: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
   available: Mapped[bool] = mapped_column(server_default=text("true"))
   created_at: Mapped[datetime] = created_at()
 
@@ -115,7 +123,8 @@ class Principal(Base):
 class Request(Base):
   __tablename__ = "requests"
   __table_args__ = (
-    Index("ix_requests_status_expires_at", "status", "expires_at")
+    Index("ix_requests_status_expires_at", "status", "expires_at"),
+    enum_check("status", RequestStatus)
   )
 
   id: Mapped[uuid.UUID] = uuid_pk()
@@ -137,7 +146,7 @@ class Route(Base):
   __tablename__ = "routes"
   __table_args__ = (
     UniqueConstraint("request_id", "step_index"),
-    CheckConstraint("cardinality(principal_ids) > 0 OR role IS NOT NULL", name="has_target")
+    CheckConstraint("cardinality(principal_ids) > 0 OR role IS NOT NULL", name="has_target"),
   )
 
   id: Mapped[uuid.UUID] = uuid_pk()
@@ -153,11 +162,12 @@ class Route(Base):
 class Decision(Base):
   __tablename__ = "decisions"
   __table_args__ = (
+    enum_check("verdict", Verdict),
     CheckConstraint("(verdict = 'modify') = (modified_args IS NOT NULL)", name="notify_has_args"),
     CheckConstraint(
       "verdict <> 'deny' OR length(trim(coalesce(comment, ''))) > 0",
       name="deny_has_reason"
-    )
+    ),
   )
 
   id: Mapped[uuid.UUID] = uuid_pk()
@@ -172,7 +182,7 @@ class Decision(Base):
 class RequestEvent(Base):
   __tablename__ = "request_events"
   __table_args__ = (
-    Index("ix_request_events_request_id_at", "request_id", "at")
+    Index("ix_request_events_request_id_at", "request_id", "at"),
   )
 
   id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -184,7 +194,8 @@ class RequestEvent(Base):
 class Outbox(Base):
   __tablename__ = "outbox"
   __table_args__ = (
-    Index("ix_outbox_date", "next_attempt_at", postgresql_where=text("status = 'pending"))
+    Index("ix_outbox_date", "next_attempt_at", postgresql_where=text("status = 'pending'")),
+    enum_check("status", OutboxStatus)
   )
 
   id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
