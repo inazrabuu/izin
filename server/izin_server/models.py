@@ -135,7 +135,7 @@ class Request(Base):
   args: Mapped[dict[str, Any]]
   rationale: Mapped[str | None] = mapped_column(Text)
   context: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"))
-  rendered: Mapped[str] = mapped_column(Text)
+  rendered: Mapped[dict[str, Any]]
   status: Mapped[RequestStatus] = mapped_column(
     str_enum(RequestStatus), server_default=RequestStatus.PENDING.value
   )
@@ -177,7 +177,7 @@ class Decision(Base):
   modified_args: Mapped[dict[str, Any] | None]
   comment: Mapped[str | None] = mapped_column(Text)
   decided_at: Mapped[datetime] = created_at()
-  rendered_snapshot: Mapped[str] = mapped_column(Text)
+  rendered_snapshot: Mapped[dict[str, Any]]
 
 class RequestEvent(Base):
   __tablename__ = "request_events"
