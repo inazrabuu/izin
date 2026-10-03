@@ -6,4 +6,6 @@ class Settings(BaseSettings):
   database_url: str = "postgresql+asyncpg://izin:izin@localhost:5432/izin"
   api_token: str = "dev-token"
 
+  default_approver: str = "approver"
+
 settings = Settings()
