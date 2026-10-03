@@ -5,7 +5,7 @@ from typing import Any
 from jinja2 import StrictUndefined, Template, TemplateError, meta
 from jinja2.sandbox import SandboxedEnvironment
 
-MAX_VALUE_LEN = 20
+MAX_VALUE_LEN = 120
 
 class RenderError(ValueError):
   """The template can't be rendered against these args. Maps to HTTP 422."""
@@ -34,7 +34,7 @@ def _clean(value: Any) -> str:
 
   text = " ".join("".join(chars).split())
   if len(text) > MAX_VALUE_LEN:
-    text = text[:MAX_VALUE_LEN - 1] + "..."
+    text = text[:MAX_VALUE_LEN - 1] + "\u2026"
 
   return text
 
@@ -58,7 +58,7 @@ def template_variables(source: str) -> set[str]:
 
 def render_text(source: str, args: dict[str, Any]) -> str:
   try:
-    out = compile(source).render(args)
+    out = _compile(source).render(args)
   except RenderError:
     raise
   except TemplateError as e:
