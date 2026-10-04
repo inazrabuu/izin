@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from izin_server.models import OnTimeout, RequestStatus, RiskLevel
+from izin_server.models import OnTimeout, RequestStatus, RiskLevel, Verdict
 
 class ActionIn(BaseModel):
   display_name: str = Field(max_length=200)
@@ -48,3 +48,39 @@ class RequestOut(BaseModel):
   rendered: dict[str, str | None]
   expires_at: datetime | None
   created_at: datetime
+
+class PrincipalIn(BaseModel):
+  name: str = Field(min_length=1, max_length=200)
+  email: str | None = Field(default=None, max_length=320)
+  phone: str | None = Field(default=None, max_length=32)
+  roles: list[str] = Field(default_factory=list)
+
+class PrincipalOut(PrincipalIn):
+  model_config = ConfigDict(from_attributes=True)
+
+  id: uuid.UUID
+  available: bool
+  created_at: datetime
+
+class DecicionIn(BaseModel):
+  principal_id: uuid.UUID
+  verdict: Verdict
+  comment: str | None = Field(default=None, max_length=2000)
+
+  @model_validator(mode="after")
+  def deny_needs_reason(self):
+    if self.verdict == Verdict.DENY and not (self.comment or "").strip():
+      raise ValueError("a deny needs a reason")
+    return self
+
+class DecisionOut(BaseModel):
+  verdict: Verdict
+  comment: str | None
+  principal_name: str
+  decided_at: datetime
+  args: dict[str, Any]
+
+class DecisionStatusOut(BaseModel):
+  request_id: uuid.UUID
+  status: RequestStatus
+  decision: DecisionOut | None
