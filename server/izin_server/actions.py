@@ -39,7 +39,7 @@ def validate_action_definition(body: ActionIn) -> None:
       raise InvalidInput(f"{field} uses {sorted(missing)}, which args_schema does not lists as required")
 
 async def upsert_action(session: AsyncSession, name: str, body: ActionIn) -> Action:
-  validate_action_definition()
+  validate_action_definition(body)
 
   values = body.model_dump()
   stmt = (

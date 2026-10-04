@@ -14,7 +14,7 @@ router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 Session = Annotated[AsyncSession, Depends(get_session)]
 ActionName = Annotated[str, Path(pattern=r"^[a-z][a-z0-9_]{0,99}$")]
 
-@router.put("/action/{name}", response_model=ActionOut)
+@router.put("/actions/{name}", response_model=ActionOut)
 async def put_action(name: ActionName, body: ActionIn, session: Session):
   return await upsert_action(session, name, body)
 

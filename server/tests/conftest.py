@@ -40,4 +40,4 @@ async def client(engine_lifecycle):
     base_url="http://test",
     headers={"Authorization": "Bearer test-token"},
   ) as c:
-    yield
+    yield c

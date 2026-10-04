@@ -1,0 +1,20 @@
+{
+  "display_name": "Refund order",
+  "risk_level": "high",
+  "args_schema": {
+    "type": "object",
+    "required": ["order_id", "amount_idr", "customer"],
+    "properties": {
+      "order_id": { "type": "string" },
+      "amount_idr": { "type": "integer", "minimum": 1 },
+      "customer": {
+        "type": "object",
+        "required": ["name"],
+        "properties": { "name": { "type": "string" } }
+      }
+    }
+  },
+  "render_template": "Refund Rp {{ amount_idr | rupiah }} to {{ customer.name }} for order {{ order_id }}.",
+  "blast_radius": "Rp {{ amount_idr | rupiah }} leaves the company account.",
+  "if_denied": "The agent hands the case to customer service."
+}

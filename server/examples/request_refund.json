@@ -1,0 +1,11 @@
+{
+  "action": "refund_order",
+  "idempotency_key": "demo-key-0000000001",
+  "agent_run_id": "demo-run-1",
+  "args": {
+    "order_id": "ORD-1182",
+    "amount_idr": 4500000,
+    "customer": { "name": "Dewi S." }
+  },
+  "rationale": "Customer reported item never arrived; courier tracking shows delivery failure on 2026-09-09."
+}

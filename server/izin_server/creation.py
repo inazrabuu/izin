@@ -65,7 +65,14 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
     insert(RequestEvent).values(
       request_id=new_id,
       type="created",
-      payload=_outbox_payload(new_id, action, rendered)
+      payload={"agent_run_id": body.agent_run_id, "agent_name": body.agent_name},
+    )
+  )
+  await session.execute(
+    insert(Outbox).values(
+      request_id=new_id,
+      channel="webhook",
+      payload=_outbox_payload(new_id, action, rendered),
     )
   )
   await session.commit()
@@ -75,7 +82,7 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
 async def _find(session: AsyncSession, key: str) -> Request:
   return await session.scalar(select(Request).where(Request.idempotency_key == key))
 
-async def _ensure_same_request(existing: Request, action: Action, body: RequestIn) -> None:
+def _ensure_same_request(existing: Request, action: Action, body: RequestIn) -> None:
   same = (
     existing.action_id == action.id
     and existing.agent_run_id == body.agent_run_id
