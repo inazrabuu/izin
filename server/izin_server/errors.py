@@ -17,3 +17,15 @@ class InvalidInput(IzinError):
 class IdempotencyConflict(IzinError):
   status_code = 409
   code = "idempotency_conflict"
+
+class Forbidden(IzinError):
+  status_code = 403
+  code = "forbidden"
+
+class NotFound(IzinError):
+  status_code = 404
+  code = "not_found"
+
+class AlreadyDecided(IzinError):
+  status_code = 409
+  code = "already_decided"
