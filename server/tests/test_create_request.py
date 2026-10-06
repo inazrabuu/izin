@@ -12,13 +12,6 @@ from helpers import (
   REFUND_SCHEMA, ARGS, HEADLINE, action_payload, request_body, count
 )
 
-@pytest.fixture
-async def action(client):
-  name = f"refund_order_{uuid.uuid4().hex[:8]}"
-  r = await client.put(f"/v1/actions/{name}", json=action_payload())
-  assert r.status_code == 200, r.text
-  return name
-
 # ---------- creation ----------
 
 async def test_create_returns_201_with_frozen_screen(client, action):
