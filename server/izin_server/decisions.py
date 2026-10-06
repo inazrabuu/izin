@@ -54,7 +54,7 @@ async def decide(
       principal_id=principal.id,
       verdict=body.verdict,
       comment=body.comment,
-      rendered_snaphot=rendered
+      rendered_snapshot=rendered
     )
   )
   await session.execute(
