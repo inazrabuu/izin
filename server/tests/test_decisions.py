@@ -73,6 +73,10 @@ async def test_non_approver_is_forbidden(client, pending_request):
   r = await post_decision(client, pending_request, r.json())
   assert r.status_code == 403
 
+async def test_modify_is_not_in_v01(client, pending_request, approver):
+  r = await post_decision(client, pending_request, approver, verdict="modify")
+  assert r.status_code == 422
+
 async def test_unknown_request_is_404(client, approver):
   r = await client.post(
     f"/v1/requests/{uuid.uuid4()}/decision",
