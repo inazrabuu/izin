@@ -1,4 +1,5 @@
 import os
+import uuid
 
 os.environ["IZIN_DATABASE_URL"] = "postgresql+asyncpg://izin:izin@localhost:5432/izin_test"
 os.environ["IZIN_API_TOKEN"] = "test-token"
@@ -10,6 +11,8 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+
+from helpers import action_payload, request_body
 
 SERVER_DIR = Path(__file__).resolve().parent.parent
 
@@ -41,3 +44,22 @@ async def client(engine_lifecycle):
     headers={"Authorization": "Bearer test-token"},
   ) as c:
     yield c
+
+@pytest.fixture
+async def action(client):
+  name = f"refund_order_{uuid.uuid4().hex[:8]}"
+  r = await client.put(f"/v1/actions/{name}", json=action_payload())
+  assert r.status_code == 200, r.text
+  return name
+
+@pytest.fixture
+async def approver(client):
+  r = await client.post("/v1/principals", json={"name": "Ana", "roles": ["approver"]})
+  assert r.status_code == 201, r.text
+  return r.json()
+
+@pytest.fixture
+async def pending_request(client, action):
+  r = await client.post("/v1/requests", json=request_body(action))
+  assert r.status_code == 201, r.text
+  return r.json()
