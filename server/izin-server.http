@@ -1,0 +1,17 @@
+@H = 'Authorization: Bearer dev-token'
+@J = 'content-type: application/json'
+curl -s -X POST http://localhost:8000/v1/principals -H {{H}} -H {{J}} -d '{"name": "Ana", "roles": ["approver"]}'
+
+###
+
+curl -s -X POST http://localhost:8000/v1/requests -H {{H}} -H {{J}} \
+-d @examples/request_refund.json
+
+###
+
+curl -s "localhost:8000/v1/requests/a68bb52c-bfb1-462d-9745-cfffd539602d/decision?wait=30" -H {{H}}
+
+###
+
+curl -s -X POST http://localhost:8000/v1/requests/a68bb52c-bfb1-462d-9745-cfffd539602d/decision -H {{H}} -H {{J}} \
+-d '{"principal_id": "4bedbb66-166a-48ea-abf5-1bef72b243ca", "verdict": "approve"}'
