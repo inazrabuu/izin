@@ -11,7 +11,7 @@ from izin_server.creation import create_request
 from izin_server.db import get_session
 from izin_server.schemas import ActionIn, ActionOut, RequestIn, RequestOut, DecicionIn, DecisionStatusOut, PrincipalIn, PrincipalOut
 from izin_server.principals import create_principal
-from izin_server.decisions import decide, wait_for_decision
+from izin_server.decisions import decide, wait_for_decision, consume
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 
@@ -43,3 +43,6 @@ async def get_decision(
 async def post_principal(body: PrincipalIn, session: Session):
   return await create_principal(session, body)
 
+@router.post("/requests/{request_id}/consume", response_model=DecisionStatusOut)
+async def post_consume(request_id: uuid.UUID, session: Session):
+  return await consume(session, request_id)
