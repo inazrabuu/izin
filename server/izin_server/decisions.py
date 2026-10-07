@@ -6,7 +6,7 @@ from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.db import SessionLocal
-from izin_server.errors import AlreadyDecided, Forbidden, InvalidInput, NotFound
+from izin_server.errors import AlreadyDecided, Forbidden, InvalidInput, NotFound, NotDecided
 from izin_server.models import (
   Decision, Principal, Request, RequestEvent, RequestStatus, Route, Verdict
 )
@@ -125,3 +125,27 @@ async def wait_for_decision(
     if view.status != RequestStatus.PENDING or remaining <= 0 or await is_disconnected():
       return view
     await asyncio.sleep(min(POLL_INTERVAL, remaining))
+
+CONSUMABLE = (RequestStatus.APPROVED, RequestStatus.DENIED)
+
+async def consume(session: AsyncSession, request_id: uuid.UUID) -> DecisionStatusOut:
+  consumed = await session.scalar(
+    update(Request)
+    .where(Request.id == request_id, Request.status.in_(CONSUMABLE))
+    .values(status=RequestStatus.CONSUMED)
+    .returning(Request.id)
+    .execution_options(synchronize_session=False)
+  )
+  if consumed is None:
+    view = await _load_view(session, request_id)
+    if view.status == RequestStatus.CONSUMED:
+      return view
+    raise NotDecided(
+      f"This request is {view.status.value.lower()}; there is no decision to consume"
+    )
+
+  await session.execute(insert(RequestEvent).values(request_id=request_id, type="consumed"))
+  await session.commit()
+
+  return await _load_view(session, request_id)
+
