@@ -29,3 +29,7 @@ class NotFound(IzinError):
 class AlreadyDecided(IzinError):
   status_code = 409
   code = "already_decided"
+
+class NotDecided(IzinError):
+  status_code = 409
+  code = "not_decided"
