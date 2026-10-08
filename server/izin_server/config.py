@@ -8,4 +8,7 @@ class Settings(BaseSettings):
 
   default_approver: str = "approver"
 
+  webhook_url: str | None = None
+  webhook_secret: str = "dev-webhook-secret"
+
 settings = Settings()
