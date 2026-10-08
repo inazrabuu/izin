@@ -4,15 +4,9 @@ import uuid
 
 from sqlalchemy import select
 
-from helpers import count
+from helpers import count, post_decision
 from izin_server.db import SessionLocal
 from izin_server.models import Decision, Request, RequestEvent
-
-def post_decision(client, req, principal, verdict="approve", comment=None):
-  body = {"principal_id": principal["id"], "verdict": verdict}
-  if comment is not None:
-    body["comment"] = comment
-  return client.post(f"/v1/requests/{req['id']}/decision", json=body)
 
 def poll_url(req):
   return f"/v1/requests/{req['id']}/decision"

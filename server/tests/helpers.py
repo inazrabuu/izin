@@ -48,3 +48,9 @@ def request_body(action, **overrides):
 async def count(model, *where):
   async with SessionLocal() as s:
     return await s.scalar(select(func.count()).select_from(model).where(*where))
+
+def post_decision(client, req, principal, verdict="approve", comment=None):
+  body = {"principal_id": principal["id"], "verdict": verdict}
+  if comment is not None:
+    body["comment"] = comment
+  return client.post(f"/v1/requests/{req['id']}/decision", json=body)
