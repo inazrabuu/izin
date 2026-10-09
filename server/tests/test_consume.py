@@ -4,7 +4,7 @@ from helpers import count, post_decision
 from izin_server.models import RequestEvent
 
 def consume(client, req):
-  return client.get(f"/v1/requests/{req['id']}/consume")
+  return client.post(f"/v1/requests/{req['id']}/consume")
 
 async def test_consume_after_approval(client, pending_request, approver):
   await post_decision(client, pending_request, approver)
