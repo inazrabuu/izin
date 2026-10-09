@@ -52,7 +52,7 @@ async def claim(session: AsyncSession, batch_size: int) -> list[Claimed]:
       .where(Outbox.id.in_(due))
       .values(
         attempts=Outbox.attempts + 1,
-        next_attemps_at=func.now() + timedelta(seconds=LEASE_SECONDS),
+        next_attempt_at=func.now() + timedelta(seconds=LEASE_SECONDS),
       )
       .returning(
         Outbox.id, Outbox.request_id, Outbox.channel, Outbox.payload, Outbox.attempts
