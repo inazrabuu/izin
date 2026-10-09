@@ -8,7 +8,7 @@ def test_signature_roundtrip():
 
 def test_tampering_is_detected():
   headers = sign(SECRET, "42", BODY)
-  assert not verify(SECRET, headers, BODY + "b")
+  assert not verify(SECRET, headers, BODY + b" ")
   assert not verify("other-secret", headers, BODY)
   assert not verify(SECRET, {**headers, "Izin-Delivery-Id": "43"}, BODY)
 
