@@ -1,6 +1,6 @@
 {
   "action": "refund_order",
-  "idempotency_key": "demo-key-0000000002",
+  "idempotency_key": "demo-key-0000000004",
   "agent_run_id": "demo-run-1",
   "args": {
     "order_id": "ORD-1182",
