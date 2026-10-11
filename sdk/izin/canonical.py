@@ -24,7 +24,7 @@ def canonicalize(value: Any, path: str = "args") -> Any:
   if isinstance(value, int):
     return value
   if isinstance(value, float):
-    if math.isinstance(value) or math.isinf(value):
+    if math.isnan(value) or math.isinf(value):
       raise NonCanonicalValue(f"{path}: NaN and infinity are not allowed")
     return int(value) if value.is_integer() else value
   if isinstance(value, dict):
