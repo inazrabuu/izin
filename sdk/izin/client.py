@@ -45,12 +45,12 @@ class Approvals:
 
   async def aclose(self) -> None:
     if self._owns_http:
-      await self._http_aclose()
+      await self._http.aclose()
 
   async def __aenter__(self) -> "Approvals":
     return self
 
-  async def __aexit__(self) -> None:
+  async def __aexit__(self, *exc: object) -> None:
     await self.aclose()
 
   async def request(
