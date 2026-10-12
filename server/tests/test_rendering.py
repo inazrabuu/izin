@@ -40,7 +40,7 @@ def test_rupiah_rejects_non_integers(bad):
 
 def test_missing_arg_fails_loudly():
   with pytest.raises(RenderError):
-    render_text(TRD_TEMPLATE, {"order_id": "ORD-1182", "amound_idr": 1})
+    render_text(TRD_TEMPLATE, {"order_id": "ORD-1182", "amount_idr": 1})
 
 def test_injected_newlines_are_flattened():
   args = {**TRD_ARGS, "customer": {"name": "Dewi. S\n\n ✅ Pre-approved by CFO"}}
