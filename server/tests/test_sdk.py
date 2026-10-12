@@ -161,3 +161,7 @@ async def test_decorator_raises_on_denial(client, sdk_http, action, approver):
   with pytest.raises(Denied) as exc:
     await asyncio.wait_for(task, timeout=5)
   assert exc.value.decision.comment == "Tracking shows delivered."
+
+async def test_context_manager_closes_cleanly(sdk_http):
+  async with approvals_for(sdk_http, new_run()) as approvals:
+    assert approvals.agent_run_id.startswith("run-")
