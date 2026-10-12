@@ -40,8 +40,8 @@ class Approvals:
     self._http = http or httpx.AsyncClient(base_url=url, timeout=poll_wait + 15)
     self._poll_wait = poll_wait
     self._max_attempts = max_attempts
-    self._contained = Counter[tuple[str, str]] = Counter()
-    self._in_flight = set[tuple[str, str]] = set()
+    self._completed: Counter[tuple[str, str]] = Counter()
+    self._in_flight: set[tuple[str, str]] = set()
 
   async def aclose(self) -> None:
     if self._owns_http:
@@ -59,7 +59,7 @@ class Approvals:
     args: dict[str, Any],
     *,
     rationale: str | None = None,
-    context: dict[str, Any],
+    context: dict[str, Any] = None,
     max_wait: float | None = None
   ) -> Decision:
     canonical = canonicalize(args)
@@ -155,7 +155,7 @@ class Approvals:
         bound = signature.bind(*args, **kwargs)
         bound.apply_defaults()
         decision = await self.request(action, dict(bound.arguments), rationale=rationale)
-        if decision.approved:
+        if not decision.approved:
           raise Denied(decision)
         return await fn(**decision.args)
 
