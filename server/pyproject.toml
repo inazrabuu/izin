@@ -25,7 +25,7 @@ packages = ["izin-server"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "../sdk"]
 addopts = "--strict-config"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
