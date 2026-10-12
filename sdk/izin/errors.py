@@ -33,5 +33,5 @@ class Denied(IzinError):
   """Raised by @requires when a human denies the action."""
 
   def __init__(self, decision):
-    super().__init__(f"denied by {decision.decidec_by}: {decision.comment}")
+    super().__init__(f"denied by {decision.decided_by}: {decision.comment}")
     self.decision = decision
