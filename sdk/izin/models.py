@@ -29,3 +29,8 @@ class Decision:
       decided_by=d["principal_name"],
       decided_at=d["decided_at"]
     )
+
+@dataclass(frozen=True)
+class Pending:
+  request_id: str
+  headline: str
