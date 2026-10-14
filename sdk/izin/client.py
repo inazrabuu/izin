@@ -1,3 +1,4 @@
+import contextlib
 import asyncio
 import functools
 import inspect
@@ -12,7 +13,7 @@ from izin.errors import (
   ApprovalTimeout, AuthError, ConcurrentDuplicate, Denied, IdempotencyConflict, InvalidRequest,
   IzinError, IzinUnavailable
 )
-from izin.models import Decision
+from izin.models import Decision, Pending
 
 log = logging.getLogger("izin")
 
@@ -59,28 +60,70 @@ class Approvals:
     args: dict[str, Any],
     *,
     rationale: str | None = None,
-    context: dict[str, Any] = None,
+    context: dict[str, Any] | None = None,
     max_wait: float | None = None
   ) -> Decision:
+    canonical, slot = self._prepare(action, args)
+    with self._in_flight_slot(slot):
+      created = await self._create(action, canonical, self._key(slot), rationale, context or {})
+      view = await self.wait(created["id"], max_wait=max_wait)
+      return await self._complete(slot, view)
+
+  async def check(
+    self,
+    action: str,
+    args: dict[str, Any],
+    *,
+    rationale: str | None = None,
+    context: dict[str, Any] | None = None
+  ):
+    canonical, slot = self._prepare(action, args)
+    with self._in_flight_slot(slot):
+      created = await self._create(action, canonical, self._key(slot), rationale, context or {})
+      view = await self._fetch(created["id"], wait=0)
+      if view["decision"] is None:
+        return Pending(request_id=created["id"], headline=created["rendered"]["headline"])
+      return await self._complete(slot, view)
+
+  async def wait(self, request_id: str, *, max_wait: float | None = None) -> dict[str, Any]:
+    loop = asyncio.get_running_loop()
+    deadline = None if max_wait is None else loop.time() + max_wait
+    while True:
+      wait = self._poll_wait
+      if deadline is not None:
+        wait = max(0.0, min(wait, deadline - loop.time()))
+      view = await self._fetch(request_id, wait=wait, retry_forever=True)
+      if view["decision"] is not None:
+        return view
+      if deadline is not None and loop.time() >= deadline:
+        raise ApprovalTimeout(request_id)
+
+  def _prepare(self, action: str, args: dict[str, Any]):
     canonical = canonicalize(args)
-    slot = (action, args_hash(canonical))
+    return canonical, (action, args_hash(canonical))
+
+  def _key(self, slot: tuple[str, str]) -> str:
+    return idempotency_key(self.agent_run_id, slot[0], slot[1], self._completed[slot])
+
+  @contextlib.contextmanager
+  def _in_flight_slot(self, slot: tuple[str, str]):
     if slot in self._in_flight:
       raise ConcurrentDuplicate(
-        f"an identical {action!r} request is already in flight in this run; "
+        f"an identical {slot[0]!r} request is already in flight in this run; "
         "await it first, or make the args differ"
       )
     self._in_flight.add(slot)
     try:
-      key = idempotency_key(self.agent_run_id, action, slot[1], self._completed[slot])
-      request_id = await self._create(action, canonical, key, rationale, context or {})
-      view = await self._wait(request_id, max_wait)
-      await self._consume(request_id)
-      self._completed[slot] += 1
-      return Decision.from_view(view)
-    finally: 
+      yield
+    finally:
       self._in_flight.discard(slot)
 
-  async def _create(self, action, args, key, rationale, context) -> str:
+  async def _complete(self, slot: tuple[str, str], view: dict[str, Any]) -> Decision:
+    await self._consume(view["request_id"])
+    self._completed[slot] += 1
+    return Decision.from_view(view)
+
+  async def _create(self, action, args, key, rationale, context) -> dict[str, Any]:
     r = await self._send(
       "POST",
       "/v1/requests",
@@ -95,30 +138,22 @@ class Approvals:
       }
     )
     if r.status_code in (200, 201):
-      return r.json()["id"]
+      return r.json()
     raise _error_for(r)
 
-  async def _wait(self, request_id: str, max_wait: float | None) -> dict[str, Any]:
-    loop = asyncio.get_running_loop()
-    deadline = None if max_wait is None else loop.time() + max_wait
-    while True:
-      wait = self._poll_wait
-      if deadline is not None:
-        wait = max(0.0, min(wait, deadline - loop.time()))
-
-      r = await self._send(
-        "GET", f"/v1/requests/{request_id}/decision",
-        params={"wait": wait}, retry_forever=True,
-      )
-      if r.status_code != 200:
-        raise _error_for(r)
-      view = r.json()
-      if view["decision"] is not None:
-        return view
-      if view["status"] != "PENDING":
-        raise IzinError(f"request {request_id} ended as {view['status']} without a decision")
-      if deadline is not None and loop.time() >= deadline:
-        raise ApprovalTimeout(request_id)
+  async def _fetch(
+    self, request_id: str, *, wait: float, retry_forever: bool = False
+  ) -> dict[str, Any]:
+    r = await self._send(
+      "GET", f"/v1/requests/{request_id}/decision",
+      params={"wait": wait}, retry_forever=retry_forever
+    )
+    if r.status_code != 200:
+      raise _error_for(r)
+    view = r.json()
+    if view["decision"] is None and view["status"] != "PENDING":
+      raise IzinError(f"request {request_id} ended as {view['status']} without a decision")
+    return view
 
   async def _consume(self, request_id: str) -> None:
     r = await self._send("POST", f"/v1/requests/{request_id}/consume")
