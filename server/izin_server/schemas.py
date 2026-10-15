@@ -62,8 +62,17 @@ class PrincipalOut(PrincipalIn):
   available: bool
   created_at: datetime
 
-class DecisionIn(BaseModel):
-  principal_id: uuid.UUID
+# class DecisionIn(BaseModel):
+#   principal_id: uuid.UUID
+#   verdict: Verdict
+#   comment: str | None = Field(default=None, max_length=2000)
+
+#   @model_validator(mode="after")
+#   def deny_needs_reason(self):
+#     if self.verdict == Verdict.DENY and not (self.comment or "").strip():
+#       raise ValueError("a deny needs a reason")
+#     return self
+class InboxDecisionIn(BaseModel):
   verdict: Verdict
   comment: str | None = Field(default=None, max_length=2000)
 
@@ -72,6 +81,35 @@ class DecisionIn(BaseModel):
     if self.verdict == Verdict.DENY and not (self.comment or "").strip():
       raise ValueError("a deny needs a reason")
     return self
+
+class InboxItem(BaseModel):
+  id: uuid.UUID
+  action_display: str
+  risk_level: RiskLevel
+  headline: str
+  agent_name: str | None
+  created_at: datetime
+  expires_at: datetime | None
+
+class RenderedScreen(BaseModel):
+  headline: str
+  blast_radius: str | None = None
+  if_denied: str | None = None
+
+class InboxDetail(BaseModel):
+  id: uuid.UUID
+  status: RequestStatus
+  action_display_name: str
+  risk_level: RiskLevel
+  agent_name: str | None
+  rationale: str | None
+  rendered: RenderedScreen
+  context: dict[str, Any]
+  args: dict[str, Any]
+  created_at: datetime
+  expires_at: datetime | None
+  similar_approved_7d: int
+  decision: DecisionOut | None
 
 class DecisionOut(BaseModel):
   verdict: Verdict
