@@ -11,6 +11,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+import httpx
 
 from helpers import action_payload, request_body
 
@@ -63,3 +64,10 @@ async def pending_request(client, action):
   r = await client.post("/v1/requests", json=request_body(action))
   assert r.status_code == 201, r.text
   return r.json()
+
+@pytest.fixture
+async def sdk_http(engine_lifecycle):
+  from izin_server.main import app
+
+  async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as http:
+    yield http
