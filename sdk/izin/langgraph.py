@@ -91,7 +91,7 @@ class LangGraphApprovals:
 
   async def aclose(self) -> None:
     if self._owns_http:
-      await self._http_aclose()
+      await self._http.aclose()
 
 async def pending_request_ids(graph, config) -> list[str]:
   snapshot = await graph.aget_state(config)
