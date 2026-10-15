@@ -67,7 +67,7 @@ class LangGraphApprovals:
     self._owns_http = http is None
     self._http = http or httpx.AsyncClient(base_url=url, timeout=45)
 
-  def in_mode(self, config: Mapping[str, Any]) -> NodeApprovals:
+  def in_node(self, config: Mapping[str, Any]) -> NodeApprovals:
     return NodeApprovals(
       Approvals(
         url=self._url,
