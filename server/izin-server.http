@@ -13,5 +13,5 @@ curl -s "localhost:8000/v1/requests/a68bb52c-bfb1-462d-9745-cfffd539602d/decisio
 
 ###
 
-curl -s -X POST http://localhost:8000/v1/requests/41ec02d1-7980-44b2-8484-3639fc54cb91/decision -H {{H}} -H {{J}} \
+curl -s -X POST http://localhost:8000/v1/requests/f96a033e-194d-4b39-b5b5-f1619476d09b/decision -H {{H}} -H {{J}} \
 -d '{"principal_id": "4bedbb66-166a-48ea-abf5-1bef72b243ca", "verdict": "approve"}'
