@@ -11,4 +11,6 @@ class Settings(BaseSettings):
   webhook_url: str | None = None
   webhook_secret: str = "dev-webhook-secret"
 
+  admin_token: str = "dev-admin-token"
+
 settings = Settings()
