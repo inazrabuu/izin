@@ -9,7 +9,7 @@ from izin_server.actions import upsert_action
 from izin_server.auth import require_token
 from izin_server.creation import create_request
 from izin_server.db import get_session
-from izin_server.schemas import ActionIn, ActionOut, RequestIn, RequestOut, DecicionIn, DecisionStatusOut, PrincipalIn, PrincipalOut
+from izin_server.schemas import ActionIn, ActionOut, RequestIn, RequestOut, DecisionIn, DecisionStatusOut, PrincipalIn, PrincipalOut
 from izin_server.principals import create_principal
 from izin_server.decisions import decide, wait_for_decision, consume
 
@@ -30,7 +30,7 @@ async def post_request(body: RequestIn, response: Response, session: Session):
   return request
 
 @router.post("/requests/{request_id}/decision", response_model=DecisionStatusOut)
-async def post_decision(request_id: uuid.UUID, body: DecicionIn, session: Session):
+async def post_decision(request_id: uuid.UUID, body: DecisionIn, session: Session):
   return await decide(session, request_id, body)
 
 @router.get("/requests/{request_id}/decision", response_model=DecisionStatusOut)

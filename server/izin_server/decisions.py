@@ -10,7 +10,7 @@ from izin_server.errors import AlreadyDecided, Forbidden, InvalidInput, NotFound
 from izin_server.models import (
   Decision, Principal, Request, RequestEvent, RequestStatus, Route, Verdict
 )
-from izin_server.schemas import DecicionIn, DecisionOut, DecisionStatusOut
+from izin_server.schemas import DecisionIn, DecisionOut, DecisionStatusOut
 
 POLL_INTERVAL = 1.0
 
@@ -18,7 +18,7 @@ NEXT_STATUS = {Verdict.APPROVE: RequestStatus.APPROVED, Verdict.DENY: RequestSta
 PAST_TENSE = {Verdict.APPROVE: 'approved', Verdict.DENY: 'denied', Verdict.MODIFY: 'modified'}
 
 async def decide(
-  session: AsyncSession, request_id: uuid.UUID, body: DecicionIn
+  session: AsyncSession, request_id: uuid.UUID, body: DecisionIn
 ) -> DecisionStatusOut:
   if body.verdict not in NEXT_STATUS:
     raise InvalidInput("the modify verdict arrives in v0.2")

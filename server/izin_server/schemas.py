@@ -62,7 +62,7 @@ class PrincipalOut(PrincipalIn):
   available: bool
   created_at: datetime
 
-class DecicionIn(BaseModel):
+class DecisionIn(BaseModel):
   principal_id: uuid.UUID
   verdict: Verdict
   comment: str | None = Field(default=None, max_length=2000)
