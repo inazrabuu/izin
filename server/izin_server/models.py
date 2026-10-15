@@ -117,6 +117,7 @@ class Principal(Base):
   phone: Mapped[str | None] = mapped_column(String(32))
   roles: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
   available: Mapped[bool] = mapped_column(server_default=text("true"))
+  token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
   created_at: Mapped[datetime] = created_at()
 
 # -------------------- the request path ------------------------
