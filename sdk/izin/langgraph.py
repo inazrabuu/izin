@@ -87,7 +87,7 @@ class LangGraphApprovals:
   async def resume_when_decided(self, graph, config, *, max_wait: float | None = None):
     for request_id in await pending_request_ids(graph, config):
       await self.wait_until_decided(request_id, max_wait=max_wait)
-    return await graph.ainvoke((Command(resume=True), config))
+    return await graph.ainvoke(Command(resume=True), config)
 
   async def aclose(self) -> None:
     if self._owns_http:
