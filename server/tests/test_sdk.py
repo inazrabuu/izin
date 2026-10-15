@@ -8,17 +8,10 @@ import pytest
 from httpx import ASGITransport
 from sqlalchemy import select
 
-from helpers import ARGS, post_decision
-from izin import Approvals, ApprovalTimeout, ConcurrentDuplicate, Denied
+from helpers import ARGS, post_decision, HEADLINE
+from izin import Approvals, ApprovalTimeout, ConcurrentDuplicate, Denied, Decision, Pending
 from izin_server.db import SessionLocal
 from izin_server.models import Request, RequestStatus
-
-@pytest.fixture
-async def sdk_http(engine_lifecycle):
-  from izin_server.main import app
-
-  async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as http:
-    yield http
 
 def new_run() -> str:
   return f"run-{uuid.uuid4().hex}"
@@ -165,3 +158,15 @@ async def test_decorator_raises_on_denial(client, sdk_http, action, approver):
 async def test_context_manager_closes_cleanly(sdk_http):
   async with approvals_for(sdk_http, new_run()) as approvals:
     assert approvals.agent_run_id.startswith("run-")
+
+async def test_check_does_not_block(client, sdk_http, action, approver):
+  approvals = approvals_for(sdk_http, new_run())
+
+  first = await approvals.check(action, ARGS)
+  assert isinstance(first, Pending)
+  assert first.headline == HEADLINE
+
+  await post_decision(client, {"id": first.request_id}, approver)
+  second = await approvals.check(action, ARGS)
+  assert isinstance(second, Decision)
+  assert second.request_id == first.request_id
