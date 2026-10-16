@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.db import engine, get_session
-from izin_server.api import router
+from izin_server.api import admin_router, agent_router, inbox_router
 from izin_server.errors import IzinError
 
 @asynccontextmanager
@@ -15,7 +15,9 @@ async def lifespan(app: FastAPI):
   await engine.dispose()
 
 app = FastAPI(title="izin", version="0.1.0", lifespan=lifespan)
-app.include_router(router)
+app.include_router(admin_router)
+app.include_router(agent_router)
+app.include_router(inbox_router)
 
 @app.get("/healthz")
 async def healthz(response: Response, session: AsyncSession = Depends(get_session)):
