@@ -7,7 +7,9 @@ def consume(client, req):
   return client.post(f"/v1/requests/{req['id']}/consume")
 
 async def test_consume_after_approval(client, pending_request, approver):
-  await post_decision(client, pending_request, approver)
+  d = await post_decision(client, pending_request, approver)
+  assert d.status_code == 200, d.text
+  
   r = await consume(client, pending_request)
   assert r.status_code == 200, r.text
   assert r.json()["status"] == "CONSUMED"
