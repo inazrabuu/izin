@@ -18,6 +18,10 @@ REFUND_SCHEMA = {
 }
 ARGS = {"order_id": "ORD-1182", "amount_idr": 4_500_000, "customer": {"name": "Dewi S."}}
 HEADLINE = "Refund Rp 4.500.000 to Dewi S. for order ORD-1182."
+ADMIN = {"Authorization": "Bearer test-admin-token"}
+
+def as_principal(principal: dict) -> dict:
+  return {"Authorization": f"Bearer {principal['token']}"}
 
 def action_payload(**overrides):
   payload = {
@@ -53,4 +57,6 @@ def post_decision(client, req, principal, verdict="approve", comment=None):
   body = {"principal_id": principal["id"], "verdict": verdict}
   if comment is not None:
     body["comment"] = comment
-  return client.post(f"/v1/requests/{req['id']}/decision", json=body)
+  return client.post(
+    f"/v1/requests/{req['id']}/decision", json=body, headers=as_principal(principal)
+  )
