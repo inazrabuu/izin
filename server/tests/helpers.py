@@ -54,9 +54,9 @@ async def count(model, *where):
     return await s.scalar(select(func.count()).select_from(model).where(*where))
 
 def post_decision(client, req, principal, verdict="approve", comment=None):
-  body = {"principal_id": principal["id"], "verdict": verdict}
+  body = {"verdict": verdict}
   if comment is not None:
     body["comment"] = comment
   return client.post(
-    f"/v1/requests/{req['id']}/decision", json=body, headers=as_principal(principal)
+    f"/v1/inbox/requests/{req['id']}/decision", json=body, headers=as_principal(principal)
   )
