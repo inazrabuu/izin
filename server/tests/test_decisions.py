@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy import select
 
-from helpers import count, post_decision
+from helpers import ADMIN, count, post_decision
 from izin_server.db import SessionLocal
 from izin_server.models import Decision, Request, RequestEvent
 
@@ -63,7 +63,7 @@ async def test_concurrent_decisions_first_write_wins(client, pending_request, ap
   assert status == winner.json()["status"]
 
 async def test_non_approver_is_forbidden(client, pending_request):
-  r = await client.post("/v1/principals", json={"name": "Budi", "roles": ["developer"]})
+  r = await client.post("/v1/principals", json={"name": "Budi", "roles": ["developer"]}, headers=ADMIN)
   r = await post_decision(client, pending_request, r.json())
   assert r.status_code == 403
 
@@ -72,10 +72,7 @@ async def test_modify_is_not_in_v01(client, pending_request, approver):
   assert r.status_code == 422
 
 async def test_unknown_request_is_404(client, approver):
-  r = await client.post(
-    f"/v1/requests/{uuid.uuid4()}/decision",
-    json={"principal_id": approver["id"], "verdict": "approve"}
-  )
+  r = await post_decision(client, {"id": str(uuid.uuid4())}, approver)
   assert r.status_code == 404, r.text
 
 async def test_poll_without_wait_returns_pending(client, pending_request):
