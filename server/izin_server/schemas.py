@@ -84,7 +84,7 @@ class InboxDecisionIn(BaseModel):
 
 class InboxItem(BaseModel):
   id: uuid.UUID
-  action_display: str
+  action_display_name: str
   risk_level: RiskLevel
   headline: str
   agent_name: str | None
