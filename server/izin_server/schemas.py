@@ -106,6 +106,18 @@ class RenderedScreen(BaseModel):
   blast_radius: str | None = None
   if_denied: str | None = None
 
+class DecisionOut(BaseModel):
+  verdict: Verdict
+  comment: str | None
+  principal_name: str
+  decided_at: datetime
+  args: dict[str, Any]
+
+class DecisionStatusOut(BaseModel):
+  request_id: uuid.UUID
+  status: RequestStatus
+  decision: DecisionOut | None
+
 class InboxDetail(BaseModel):
   id: uuid.UUID
   status: RequestStatus
@@ -119,16 +131,4 @@ class InboxDetail(BaseModel):
   created_at: datetime
   expires_at: datetime | None
   similar_approved_7d: int
-  decision: DecisionOut | None
-
-class DecisionOut(BaseModel):
-  verdict: Verdict
-  comment: str | None
-  principal_name: str
-  decided_at: datetime
-  args: dict[str, Any]
-
-class DecisionStatusOut(BaseModel):
-  request_id: uuid.UUID
-  status: RequestStatus
   decision: DecisionOut | None
