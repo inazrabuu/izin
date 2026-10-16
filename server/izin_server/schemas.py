@@ -72,6 +72,16 @@ class PrincipalOut(PrincipalIn):
 #     if self.verdict == Verdict.DENY and not (self.comment or "").strip():
 #       raise ValueError("a deny needs a reason")
 #     return self
+class PrincipalCreated(BaseModel):
+  token: str
+
+class MeOut(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
+
+  id: uuid.UUID
+  name: str
+  roles: list[str]
+  
 class InboxDecisionIn(BaseModel):
   verdict: Verdict
   comment: str | None = Field(default=None, max_length=2000)
