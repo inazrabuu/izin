@@ -9,7 +9,7 @@ from izin_server.db import SessionLocal
 from izin_server.models import Outbox, Request, RequestEvent, Route
 
 from helpers import (
-  REFUND_SCHEMA, ARGS, HEADLINE, action_payload, request_body, count
+  REFUND_SCHEMA, ARGS, HEADLINE, ADMIN, action_payload, request_body, count
 )
 
 # ---------- creation ----------
@@ -78,6 +78,7 @@ async def test_replay_survives_a_template_change(client, action):
   r = await client.put(
     f"/v1/actions/{action}",
     json=action_payload(args_schema=schema, render_template="Refund because {{ reason }}."),
+    headers=ADMIN
   )
   assert r.status_code == 200, r.text
 
@@ -143,6 +144,7 @@ async def test_template_using_optional_field_is_rejected(client):
   r = await client.put(
     f"/v1/actions/{name}",
     json=action_payload(render_template="Refund for {{ note }}."),
+    headers=ADMIN
   )
   assert r.status_code == 422
   assert "note" in r.json()["error"]["message"]
