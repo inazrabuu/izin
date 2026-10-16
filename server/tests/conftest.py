@@ -3,6 +3,7 @@ import uuid
 
 os.environ["IZIN_DATABASE_URL"] = "postgresql+asyncpg://izin:izin@localhost:5432/izin_test"
 os.environ["IZIN_API_TOKEN"] = "test-token"
+os.environ["IZIN_ADMIN_TOKEN"] = "test-admin-token"
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -13,7 +14,7 @@ from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 import httpx
 
-from helpers import action_payload, request_body
+from helpers import action_payload, request_body, ADMIN
 
 SERVER_DIR = Path(__file__).resolve().parent.parent
 
@@ -49,13 +50,13 @@ async def client(engine_lifecycle):
 @pytest.fixture
 async def action(client):
   name = f"refund_order_{uuid.uuid4().hex[:8]}"
-  r = await client.put(f"/v1/actions/{name}", json=action_payload())
+  r = await client.put(f"/v1/actions/{name}", json=action_payload(), headers=ADMIN)
   assert r.status_code == 200, r.text
   return name
 
 @pytest.fixture
 async def approver(client):
-  r = await client.post("/v1/principals", json={"name": "Ana", "roles": ["approver"]})
+  r = await client.post("/v1/principals", json={"name": "Ana", "roles": ["approver"]}, headers=ADMIN)
   assert r.status_code == 201, r.text
   return r.json()
 
