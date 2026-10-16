@@ -10,18 +10,34 @@ from izin_server.errors import AlreadyDecided, Forbidden, InvalidInput, NotFound
 from izin_server.models import (
   Decision, Principal, Request, RequestEvent, RequestStatus, Route, Verdict
 )
-from izin_server.schemas import DecisionIn, DecisionOut, DecisionStatusOut
+from izin_server.schemas import InboxDecisionIn, DecisionOut, DecisionStatusOut
 
 POLL_INTERVAL = 1.0
 
 NEXT_STATUS = {Verdict.APPROVE: RequestStatus.APPROVED, Verdict.DENY: RequestStatus.DENIED}
 PAST_TENSE = {Verdict.APPROVE: 'approved', Verdict.DENY: 'denied', Verdict.MODIFY: 'modified'}
 
+async def latest_route(session: AsyncSession, request_id: uuid.UUID) -> Route | None:
+  return await session.scalar(
+    select(Route)
+    .where(Route.request_id == request_id)
+    .order_by(Route.step_index.desc())
+    .limit(1)
+  )
+
+async def authorize(session: AsyncSession, request_id: uuid.UUID, principal: Principal) -> None:
+  route = await latest_route(session, request_id)
+  if route is None:
+    raise NotFound("request not found")
+  if not may_decide(principal, route):
+    raise Forbidden(f"{principal.name} is not an approver for this request")
+
 async def decide(
-  session: AsyncSession, request_id: uuid.UUID, body: DecisionIn
-) -> DecisionStatusOut:
+  session: AsyncSession, request_id: uuid.UUID, principal: Principal, body: InboxDecisionIn
+) -> None:
   if body.verdict not in NEXT_STATUS:
     raise InvalidInput("the modify verdict arrives in v0.2")
+  await authorize(session, request_id, principal)
 
   route = await session.scalar(
     select(Route)
@@ -32,12 +48,6 @@ async def decide(
   if route is None:
     raise NotFound("request not found")
 
-  principal = await session.get(Principal, body.principal_id)
-  if principal is None:
-    raise InvalidInput("unknown principal")
-  if not _may_decide(principal, route):
-    raise Forbidden(f"{principal.name} is not an approver for this request")
-
   rendered = await session.scalar(
     update(Request)
     .where(Request.id == request_id, Request.status == RequestStatus.PENDING)
@@ -46,7 +56,7 @@ async def decide(
     .execution_options(synchronize_session=False)
   )
   if rendered is None:
-    raise _already_decided(await _load_view(session, request_id))
+    raise _already_decided(await load_view(session, request_id))
 
   await session.execute(
     insert(Decision).values(
@@ -66,9 +76,7 @@ async def decide(
   )
   await session.commit()
 
-  return await _load_view(session, request_id)
-
-def _may_decide(principal: Principal, route: Route) -> bool:
+def may_decide(principal: Principal, route: Route) -> bool:
   return principal.id in route.principal_ids or (
     route.role is not None and route.role in principal.roles
   )
@@ -79,7 +87,7 @@ def _already_decided(view: DecisionStatusOut) -> AlreadyDecided:
     return AlreadyDecided(f"This request is {view.status.value.lower()}, not pending.")
   return AlreadyDecided(f"Already {PAST_TENSE[d.verdict]} by {d.principal_name}")
 
-async def _load_view(session: AsyncSession, request_id: uuid.UUID) -> DecisionStatusOut:
+async def load_view(session: AsyncSession, request_id: uuid.UUID) -> DecisionStatusOut:
   row = (
     await session.execute(
       select(
@@ -120,7 +128,7 @@ async def wait_for_decision(
   deadline = loop.time() + wait
   while True:
     async with SessionLocal() as session:
-      view = await _load_view(session, request_id)
+      view = await load_view(session, request_id)
     remaining = deadline - loop.time()
     if view.status != RequestStatus.PENDING or remaining <= 0 or await is_disconnected():
       return view
@@ -137,7 +145,7 @@ async def consume(session: AsyncSession, request_id: uuid.UUID) -> DecisionStatu
     .execution_options(synchronize_session=False)
   )
   if consumed is None:
-    view = await _load_view(session, request_id)
+    view = await load_view(session, request_id)
     if view.status == RequestStatus.CONSUMED:
       return view
     raise NotDecided(
@@ -147,5 +155,5 @@ async def consume(session: AsyncSession, request_id: uuid.UUID) -> DecisionStatu
   await session.execute(insert(RequestEvent).values(request_id=request_id, type="consumed"))
   await session.commit()
 
-  return await _load_view(session, request_id)
+  return await load_view(session, request_id)
 
