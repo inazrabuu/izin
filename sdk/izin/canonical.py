@@ -12,6 +12,7 @@ _SECRET_PATTERNS = [
   re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}"),     # GitHub tokens
   re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}"),   # Slack tokens
   re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+  re.compile(r"\bizin_p_[A-Za-z0-9_-]{20,}"),
 ]
 
 def canonicalize(value: Any, path: str = "args") -> Any:
