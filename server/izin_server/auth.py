@@ -28,7 +28,7 @@ async def require_agent(creds: HTTPAuthorizationCredentials | None = Depends(_be
   _check_static(creds, settings.api_token, "agent")
 
 async def require_admin(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> None:
-  _check_static(creds, settings.api_token, "admin")
+  _check_static(creds, settings.admin_token, "admin")
 
 async def current_principal(
   creds: HTTPAuthorizationCredentials | None  = Depends(_bearer),
