@@ -37,9 +37,9 @@ async def post_principal(body: PrincipalIn, session: Session):
   principal, token = await create_principal(session, body)
   return PrincipalCreated(**PrincipalOut.model_validate(principal).model_dump(), token=token)
 
-@admin_router.post("/principals/{principal_id}/token", response_model=PrincipalCreated, status_code=201)
+@admin_router.post("/principals/{principal_id}/token", response_model=PrincipalCreated)
 async def post_principal_token(principal_id: uuid.UUID, session: Session):
-  principal, token = await rotate_token(session, principal.id)
+  principal, token = await rotate_token(session, principal_id)
   return PrincipalCreated(**PrincipalOut.model_validate(principal).model_dump(), token=token)
 
 @agent_router.post("/requests", response_model=RequestOut, status_code=201)
