@@ -27,7 +27,7 @@ async def list_inbox(session: AsyncSession, principal: Principal) -> list[InboxI
       .join(current, current.c.request_id == Request.id)
       .join(Route, (Route.request_id == Request.id) & (Route.step_index == current.c.step))
       .where(Request.status == RequestStatus.PENDING)
-      .where(or_(Route.principal_ids.any(principal.id), Route.role.in_(principal.roles)))
+      .where(or_(Route.principal_ids.contains([principal.id]), Route.role.in_(principal.roles)))
       .order_by(Request.expires_at.asc().nulls_last(), Request.created_at.asc())
       .limit(100)
     )
