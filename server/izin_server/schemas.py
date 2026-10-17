@@ -72,7 +72,7 @@ class PrincipalOut(PrincipalIn):
 #     if self.verdict == Verdict.DENY and not (self.comment or "").strip():
 #       raise ValueError("a deny needs a reason")
 #     return self
-class PrincipalCreated(BaseModel):
+class PrincipalCreated(PrincipalOut):
   token: str
 
 class MeOut(BaseModel):
