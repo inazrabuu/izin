@@ -1,5 +1,5 @@
 export function timeAgo(iso: string): string {
-  const seconds = Math.round(Date.now() - new Date(iso).getTime() / 1000);
+  const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
   const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
   if (seconds < 60) return rtf.format(-seconds, "second");
   if (seconds < 3600) return rtf.format(-Math.round(seconds / 60), "minute");
