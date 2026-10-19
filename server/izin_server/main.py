@@ -1,16 +1,28 @@
+import logging
+from pathlib import Path
+
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Response, status
 from fastapi import Request as HTTPRequest
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.db import engine, get_session
 from izin_server.api import admin_router, agent_router, inbox_router
 from izin_server.errors import IzinError
+from izin_server.config import settings
+
+log = logging.getLogger("izin")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+  if settings.admin_token == "dev-admin-token" or settings.api_token == "dev-token":
+    log.warning(
+      "izin is running with default dev tokens. "
+      "Set IZIN_ADMIN_TOKEN and IZIN_API_TOKEN before exposing it to the network you don't trust."
+    )
   yield
   await engine.dispose()
 
@@ -39,3 +51,6 @@ async def handle_izin_error(_: HTTPRequest, exc: IzinError) -> JSONResponse:
       }
     }
   )  
+
+if settings.static_dir and Path(settings.static_dir).is_dir():
+  app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="inbox")
