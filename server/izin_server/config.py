@@ -13,4 +13,7 @@ class Settings(BaseSettings):
 
   admin_token: str = "dev-admin-token"
 
+  static_dir: str | None = None
+  public_url: str = "http://localhost:8000"
+
 settings = Settings()
