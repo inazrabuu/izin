@@ -16,3 +16,83 @@ services:
       retries: 15
 volumes:
   pgdata:
+
+# name: izin
+
+# x-app: &app
+#   build:
+#     context: .
+#     dockerfile: server/Dockerfile
+#   image: izin:0.1.0
+#   environment:
+#     IZIN_DATABASE_URL: postgresql+asyncpg://izin:${POSTGRES_PASSWORD:-izin}@db:5432/izin
+#     IZIN_API_TOKEN: ${IZIN_API_TOKEN:-dev-token}
+#     IZIN_ADMIN_TOKEN: ${IZIN_ADMIN_TOKEN:-dev-admin-token}
+#     IZIN_WEBHOOK_URL: ${IZIN_WEBHOOK_URL:-http://receiver:9000/hook}
+#     IZIN_WEBHOOK_SECRET: ${IZIN_WEBHOOK_SECRET:-dev-webhook-secret}
+#     IZIN_PUBLIC_URL: ${IZIN_PUBLIC_URL:-http://localhost:8000}
+#   depends_on:
+#     migrate:
+#       condition: service_completed_successfully
+
+# services:
+#   db:
+#     image: postgres:17
+#     environment:
+#       POSTGRES_USER: izin
+#       POSTGRES_PASSWORD: ${POSTGRESS_PASSWORD:-izin}
+#       POSTGRES_DB: izin
+#     ports:
+#       - "127.0.0.1:5432:5432"
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U izin -d izin"]
+#       interval: 2s
+#       timeout: 3s
+#       retries: 15
+
+#   migrate:
+#     <<: *app
+#     command: ["alembic", "upgrade", "head"]
+#     restart: no
+#     depends_on:
+#       db:
+#         condition: service_healthy
+
+#   api:
+#     <<: *app
+#     ports:
+#       - "8000:8000"
+#     restart: unless-stopped
+#     healthcheck:
+#       test:
+#         [
+#           "CMD",
+#           "python",
+#           "-c",
+#           "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')",
+#         ]
+#       interval: 5s
+#       timeout: 3s
+#       retries: 10
+
+#   worker:
+#     <<: *app
+#     command: ["python", "-m", "izin_server.worker"]
+#     restart: unless-stopped
+
+#   receiver:
+#     <<: *app
+#     command:
+#       [
+#         "uvicorn",
+#         "examples.webhook_receiver:app",
+#         "--host",
+#         "0.0.0.0",
+#         "--port",
+#         "9000",
+#       ]
+#     restart: unless-stopped
+
+# volumes: pgdata
