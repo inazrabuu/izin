@@ -175,7 +175,7 @@ class Approvals:
         problem = f"{type(e).__name__}: {e}"
       if not retry_forever and attempt >= self._max_attempts:
         raise IzinUnavailable(f"{method} {path} failed after {attempt} attempts ({problem})")
-      log.warning("izin: %s %s failed (%s); retrying is %.1fs", method, path, problem, delay)
+      log.warning("izin: %s %s failed (%s); retrying in %.1fs", method, path, problem, delay)
       await asyncio.sleep(delay)
       delay = min(delay * 2, 10.0)
 
