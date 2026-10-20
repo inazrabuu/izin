@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from importlib.metadata import version
 
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Response, status
@@ -26,7 +27,7 @@ async def lifespan(app: FastAPI):
   yield
   await engine.dispose()
 
-app = FastAPI(title="izin", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="izin", version=version("izin-server"), lifespan=lifespan)
 app.include_router(admin_router)
 app.include_router(agent_router)
 app.include_router(inbox_router)
