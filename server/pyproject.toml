@@ -21,6 +21,9 @@ dev = [
     "langgraph>=1.2.15",
 ]
 
+[tool.uv.sources]
+izin = { path = "../sdk", editable = true }
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -30,7 +33,6 @@ packages = ["izin_server"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "../sdk"]
 addopts = "--strict-config"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
