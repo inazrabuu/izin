@@ -13,7 +13,6 @@ from izin_server.schemas import (
   ActionIn, ActionOut, RequestIn, RequestOut, DecisionStatusOut, 
   InboxDecisionIn, InboxDetail, InboxItem, MeOut, PrincipalCreated, PrincipalIn, PrincipalOut,
 )
-from izin_server.principals import create_principal
 from izin_server.decisions import decide, wait_for_decision, consume
 from izin_server.inbox import list_inbox, load_detail
 from izin_server.models import Principal
