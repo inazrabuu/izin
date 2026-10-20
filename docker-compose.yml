@@ -23,7 +23,7 @@ x-app: &app
   build:
     context: .
     dockerfile: server/Dockerfile
-  image: izin:0.1.0
+  image: izin:0.2.0.dev0
   environment:
     IZIN_DATABASE_URL: postgresql+asyncpg://izin:${POSTGRES_PASSWORD:-izin}@db:5432/izin
     IZIN_API_TOKEN: ${IZIN_API_TOKEN:-dev-token}

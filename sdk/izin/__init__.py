@@ -5,7 +5,7 @@ from izin.errors import (
 )
 from izin.models import Decision, Pending
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
   "Approvals", "Decision", "ApprovalTimeout", "AuthError", "ConcurrentDuplicate",
   "Denied", "IdempotencyConflict", "InvalidRequest", "IzinError", "IzinUnavailable",
