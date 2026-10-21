@@ -4,11 +4,18 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.errors import InvalidInput
-from izin_server.models import Action
+from izin_server.models import Action, OnTimeout, RiskLevel
 from izin_server.rendering import RenderError, template_variables
 from izin_server.schemas import ActionIn
 
+NO_AUTO_APPROVE = (RiskLevel.HIGH, RiskLevel.CRITICAL)
+
 def validate_action_definition(body: ActionIn) -> None:
+  if body.on_timeout == OnTimeout.APPROVE and body.risk_level in NO_AUTO_APPROVE:
+    raise InvalidInput(
+      f"on_timeout 'approve' is not allowed for {body.risk_level.value}-risk actions, use 'deny' or 'escalate'."
+    )
+  
   schema = body.args_schema
   try:
     Draft202012Validator.check_schema(schema)
