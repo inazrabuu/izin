@@ -477,8 +477,31 @@ wheels = [
 ]
 
 [[package]]
+name = "izin"
+version = "0.2.0"
+source = { editable = "../sdk" }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.optional-dependencies]
+langgraph = [
+    { name = "langgraph" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1.2.15" },
+]
+provides-extras = ["langgraph"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.1" }]
+
+[[package]]
 name = "izin-server"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -494,7 +517,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
-    { name = "langgraph" },
+    { name = "izin", extra = ["langgraph"] },
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
@@ -514,7 +537,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx", specifier = ">=0.27" },
-    { name = "langgraph", specifier = ">=1.2.15" },
+    { name = "izin", extras = ["langgraph"], editable = "../sdk" },
     { name = "pytest", specifier = ">=8" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
 ]

@@ -164,7 +164,7 @@ class Decision(Base):
   __tablename__ = "decisions"
   __table_args__ = (
     enum_check("verdict", Verdict),
-    CheckConstraint("(verdict = 'modify') = (modified_args IS NOT NULL)", name="notify_has_args"),
+    CheckConstraint("(verdict = 'modify') = (modified_args IS NOT NULL)", name="modify_has_args"),
     CheckConstraint(
       "verdict <> 'deny' OR length(trim(coalesce(comment, ''))) > 0",
       name="deny_has_reason"
