@@ -1,8 +1,9 @@
 import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
+from typing import Any
 
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.db import SessionLocal
@@ -32,6 +33,39 @@ async def authorize(session: AsyncSession, request_id: uuid.UUID, principal: Pri
   if not may_decide(principal, route):
     raise Forbidden(f"{principal.name} is not an approver for this request")
 
+async def write_decision(
+  session: AsyncSession,
+  request_id: uuid.UUID,
+  *,
+  principal_id: uuid.UUID,
+  verdict: Verdict,
+  comment: str | None,
+  from_status: RequestStatus = RequestStatus.PENDING,
+  only_if: tuple = (),
+  event: dict[str, Any] | None = None
+) -> bool:
+  rendered = await session.scalar(
+    update(Request)
+    .where(Request.id == request_id, Request.status == from_status, *only_if)
+    .values(status=NEXT_STATUS[verdict])
+    .returning(Request.rendered)
+    .execution_options(synchronize_session=False)
+  )
+  if rendered is None:
+    return False
+
+  await session.execute(
+    insert(RequestEvent).values(
+      request_id=request_id,
+      type="decided",
+      payload={"verdict": verdict.value, "principal_id": str(principal_id), **(event or {})}
+    )
+  )
+
+  return True
+
+NOT_EXPIRED = or_(Request.expires_at.is_(None), Request.expires_at > func.now())
+
 async def decide(
   session: AsyncSession, request_id: uuid.UUID, principal: Principal, body: InboxDecisionIn
 ) -> None:
@@ -39,42 +73,23 @@ async def decide(
     raise InvalidInput("the modify verdict arrives in v0.2")
   await authorize(session, request_id, principal)
 
-  route = await session.scalar(
-    select(Route)
-    .where(Route.request_id == request_id)
-    .order_by(Route.step_index.desc())
-    .limit(1)
+  written = await write_decision(
+    session, request_id,
+    principal_id=principal.id, verdict=body.verdict, comment=body.comment,
+    only_if=(NOT_EXPIRED,),
   )
-  if route is None:
-    raise NotFound("request not found")
-
-  rendered = await session.scalar(
-    update(Request)
-    .where(Request.id == request_id, Request.status == RequestStatus.PENDING)
-    .values(status=NEXT_STATUS[body.verdict])
-    .returning(Request.rendered)
-    .execution_options(synchronize_session=False)
-  )
-  if rendered is None:
-    raise _already_decided(await load_view(session, request_id))
-
-  await session.execute(
-    insert(Decision).values(
-      request_id=request_id,
-      principal_id=principal.id,
-      verdict=body.verdict,
-      comment=body.comment,
-      rendered_snapshot=rendered
-    )
-  )
-  await session.execute(
-    insert(RequestEvent).values(
-      request_id=request_id,
-      type="decided",
-      payload={"verdict": body.verdict.value, "principal_id": str(principal.id)}
-    )
-  )
+  if not written:
+    await session.rollback()
+    raise _already_decide(await load_view(session, request_id))
   await session.commit()
+
+def _already_decide(view: DecisionStatusOut) -> AlreadyDecided:
+  d = view.decision
+  if d is not None:
+    return AlreadyDecided(f"Already {PAST_TENSE[d.verdict]} by {Principal.name} ")
+  if view.status == RequestStatus.PENDING:
+    return AlreadyDecided("This request has expired and is being closed.")
+  return AlreadyDecided(f"This request is {view.status.value.lower()}, not pending.")
 
 def may_decide(principal: Principal, route: Route) -> bool:
   return principal.id in route.principal_ids or (
