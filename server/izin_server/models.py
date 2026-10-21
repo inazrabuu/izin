@@ -92,9 +92,13 @@ class Action(Base):
   __tablename__ = "actions"
   __table_args__ = (
     enum_check("risk_level", RiskLevel),
-    enum_check("on_timeout", OnTimeout)
+    enum_check("on_timeout", OnTimeout),
+    CheckConstraint(
+      "NOT (on_timeout = 'approve' AND risk_level IN ('high', 'critical'))",
+      name="no_auto_approve_risky"
+    )
   )
-  
+
   id: Mapped[uuid.UUID] = uuid_pk()
   name: Mapped[str] = mapped_column(String(100), unique=True)
   display_name: Mapped[str] = mapped_column(String(200))
@@ -110,6 +114,13 @@ class Action(Base):
 
 class Principal(Base):
   __tablename__ = "principals"
+  __table_args__ = (
+    CheckConstraint(
+      "id::text NOT LIKE '00000000-0000-0000-0000-%' "
+      "OR (token_hash IS NULL AND cardinality(roles) = 0)",
+      name="system_inert"
+    )
+  )
 
   id: Mapped[uuid.UUID] = uuid_pk()
   name: Mapped[str] = mapped_column(String(200))
