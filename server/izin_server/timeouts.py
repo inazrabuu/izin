@@ -67,22 +67,22 @@ async def expire_one(request_id: uuid.UUID) -> Verdict | None:
     await session.commit()
     return verdict
 
-  async def sweep_once(batch_size: int = 50) -> int:
-    async with SessionLocal() as session:
-      due = list(
-        await session.scalars(
-          select(Request.id)
-          .where(Request.status == RequestStatus.PENDING, Request.expires_at <= func.now())
-          .order_by(Request.expires_at)
-          .limit(batch_size)
-        )
+async def sweep_once(batch_size: int = 50) -> int:
+  async with SessionLocal() as session:
+    due = list(
+      await session.scalars(
+        select(Request.id)
+        .where(Request.status == RequestStatus.PENDING, Request.expires_at <= func.now())
+        .order_by(Request.expires_at)
+        .limit(batch_size)
       )
+    )
 
-    closed = 0
-    for request_id in due:
-      try:
-        if await expire_one(request_id) is not None:
-          closed += 1
-      except Exception:
-        log.exception("timeout sweep failed for request %s", request_id)
-    return closed
+  closed = 0
+  for request_id in due:
+    try:
+      if await expire_one(request_id) is not None:
+        closed += 1
+    except Exception:
+      log.exception("timeout sweep failed for request %s", request_id)
+  return closed 
