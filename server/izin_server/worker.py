@@ -15,6 +15,7 @@ from izin_server.config import settings
 from izin_server.db import SessionLocal, engine
 from izin_server.models import Outbox, OutboxStatus, RequestEvent
 from izin_server.webhooks import encode_body, sign
+from izin_server.timeouts import sweep_once
 
 log = logging.getLogger("izin.worker")
 
@@ -162,13 +163,17 @@ async def main() -> None:
   log.info("worker started; webhook_url=%s", settings.webhook_url or "(not configured)")
   async with httpx.AsyncClient(timeout=10.0) as http:
     while not stop.is_set():
+      n = 0
       try:
-        n = await run_once(
+        n += await run_once(
           http, url=settings.webhook_url, secret=settings.webhook_secret
         )
       except Exception:
-        log.exception("worker iteration failed")
-        n = 0
+        log.exception("delivery iteration failed")
+      try:
+        n += await sweep_once()
+      except:
+        log.exception("timeout sweep failed")
       if n == 0:
         try:
           await asyncio.wait_for(stop.wait(), timeout=IDLE_SLEEP)
