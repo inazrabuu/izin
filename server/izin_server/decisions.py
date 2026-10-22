@@ -18,20 +18,33 @@ POLL_INTERVAL = 1.0
 NEXT_STATUS = {Verdict.APPROVE: RequestStatus.APPROVED, Verdict.DENY: RequestStatus.DENIED}
 PAST_TENSE = {Verdict.APPROVE: 'approved', Verdict.DENY: 'denied', Verdict.MODIFY: 'modified'}
 
-async def latest_route(session: AsyncSession, request_id: uuid.UUID) -> Route | None:
-  return await session.scalar(
-    select(Route)
-    .where(Route.request_id == request_id)
-    .order_by(Route.step_index.desc())
-    .limit(1)
-  )
-
 async def authorize(session: AsyncSession, request_id: uuid.UUID, principal: Principal) -> None:
-  route = await latest_route(session, request_id)
-  if route is None:
+  routes = list(await session.scalars(select(Route).where(Route.request_id == request_id)))
+  if not routes:
     raise NotFound("request not found")
-  if not may_decide(principal, route):
-    raise Forbidden(f"{principal.name} is not an approver for this request")
+  if not any(may_decide(principal, r) for r in routes):
+    raise Forbidden(f"{principal.name} is not an approver for this request.")
+
+async def lock_current_route(
+  session: AsyncSession, request_id: uuid.UUID
+) -> tuple[Route, bool] | None:
+  status = await session.scalar(
+    select(Request.status).where(Request.id == request_id).with_for_update()
+  )
+  if status is None:
+    raise NotFound("request not found")
+  if status != RequestStatus.PENDING:
+    return None
+  row = (
+    await session.execute(
+      select(Route, (Route.due_at > func.now()).label("is_open"))
+      .where(Route.request_id == request_id)
+      .order_by(Route.step_index.desc())
+      .limit(1)
+      .execution_options(populate_existing=True)
+    )
+  ).one()
+  return row.Route, row.is_open
 
 async def write_decision(
   session: AsyncSession,
@@ -73,8 +86,6 @@ async def write_decision(
 
   return True
 
-NOT_EXPIRED = or_(Request.expires_at.is_(None), Request.expires_at > func.now())
-
 async def decide(
   session: AsyncSession, request_id: uuid.UUID, principal: Principal, body: InboxDecisionIn
 ) -> None:
@@ -82,14 +93,22 @@ async def decide(
     raise InvalidInput("the modify verdict arrives in v0.2")
   await authorize(session, request_id, principal)
 
-  written = await write_decision(
-    session, request_id,
-    principal_id=principal.id, verdict=body.verdict, comment=body.comment,
-    only_if=(NOT_EXPIRED,),
-  )
-  if not written:
+  current = await lock_current_route(session, request_id)
+  if current is None:
     await session.rollback()
     raise _already_decide(await load_view(session, request_id))
+  route, is_open = current
+  if not may_decide(principal, route):
+    await session.rollback()
+    raise AlreadyDecided("This request was escalated and is no longer waiting on you.")
+  if not is_open:
+    await session.rollback()
+    raise AlreadyDecided("This step has expired, the request is being escalated or closed.")
+
+  await write_decision(
+    session, request_id,
+    principal_id=principal.id, verdict=body.verdict, comment=body.comment
+  )
   await session.commit()
 
 def _already_decide(view: DecisionStatusOut) -> AlreadyDecided:
