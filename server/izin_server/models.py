@@ -46,7 +46,6 @@ class RiskLevel(enum.StrEnum):
 class OnTimeout(enum.StrEnum):
   APPROVE = "approve"
   DENY = "deny"
-  ESCALATE = "escalate"
 
 class RequestStatus(enum.StrEnum):
   PENDING = "PENDING"
@@ -111,6 +110,7 @@ class Action(Base):
   default_timeout: Mapped[timedelta] = mapped_column(server_default=text("interval '4 hours'"))
   on_timeout: Mapped[OnTimeout] = mapped_column(str_enum(OnTimeout), server_default="deny")
   created_at: Mapped[datetime] = created_at()
+  steps: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB)
 
 class Principal(Base):
   __tablename__ = "principals"
@@ -153,12 +153,14 @@ class Request(Base):
   )
   expires_at: Mapped[datetime | None]
   created_at: Mapped[datetime] = created_at()
+  plan: Mapped[dict[str, Any]]
 
 class Route(Base):
   __tablename__ = "routes"
   __table_args__ = (
     UniqueConstraint("request_id", "step_index"),
     CheckConstraint("cardinality(principal_ids) > 0 OR role IS NOT NULL", name="has_target"),
+    Index("ix_routes_due_at", "due_at"),
   )
 
   id: Mapped[uuid.UUID] = uuid_pk()
@@ -168,8 +170,8 @@ class Route(Base):
     ARRAY(UUID(as_uuid=True)), server_default=text("'{}'")
   )
   role: Mapped[str | None] = mapped_column(String(100))
-  escalate_after: Mapped[timedelta | None]
   created_at: Mapped[datetime] = created_at()
+  due_at: Mapped[datetime]
 
 class Decision(Base):
   __tablename__ = "decisions"
