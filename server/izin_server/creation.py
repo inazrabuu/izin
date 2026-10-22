@@ -12,6 +12,7 @@ from izin_server.errors import IdempotencyConflict, InvalidInput
 from izin_server.models import Action, Outbox, Request, RequestEvent, Route
 from izin_server.rendering import RenderError, render_screen
 from izin_server.schemas import RequestIn
+from izin_server.routing import build_plan, total_wait, activate_step
 
 async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Request, bool]:
   action = await session.scalar(select(Action).where(Action.name == body.action))
@@ -34,6 +35,8 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
   except RenderError as e:
     raise InvalidInput(f"could not render request: {e}") from e
 
+  plan = build_plan(action)
+
   new_id = await session.scalar(
     pg_insert(Request)
     .values(
@@ -45,7 +48,8 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
       rationale=body.rationale,
       context=body.context,
       rendered=rendered,
-      expires_at=func.now() + action.default_timeout
+      plan=plan,
+      expires_at=func.now() + total_wait(plan)
     )
     .on_conflict_do_nothing(index_elements=[Request.idempotency_key])
     .returning(Request.id)
@@ -61,13 +65,7 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
       request_id=new_id, step_index=0, role=settings.default_approver
     )
   )
-  await session.execute(
-    insert(RequestEvent).values(
-      request_id=new_id,
-      type="created",
-      payload={"agent_run_id": body.agent_run_id, "agent_name": body.agent_name},
-    )
-  )
+  await activate_step(session, new_id, plan, 0)
   await session.execute(
     insert(Outbox).values(
       request_id=new_id,
