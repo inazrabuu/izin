@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -7,6 +9,7 @@ from izin_server.errors import InvalidInput
 from izin_server.models import Action, OnTimeout, RiskLevel
 from izin_server.rendering import RenderError, template_variables
 from izin_server.schemas import ActionIn
+from izin_server.system import SYSTEM_PRINCIPAL_IDS
 
 NO_AUTO_APPROVE = (RiskLevel.HIGH, RiskLevel.CRITICAL)
 
@@ -45,10 +48,24 @@ def validate_action_definition(body: ActionIn) -> None:
     if missing:
       raise InvalidInput(f"{field} uses {sorted(missing)}, which args_schema does not lists as required")
 
+  if body.steps is not None:
+    if "default_timeout" in body.model_fields_set:
+      raise InvalidInput("set either default_timeout or steps, not both")
+    if not body.steps:
+      raise InvalidInput("steps must not be empty")
+    for i, step in enumerate(body.steps):
+      if not step.role and not step.principal_ids:
+        raise InvalidInput(f"steps[{i}] needs a role or principal_ids")
+      if step.after < timedelta(0):
+        raise InvalidInput(f"steps[{i}].after must not be negative")
+      if SYSTEM_PRINCIPAL_IDS & set(step.principal_ids):
+        raise InvalidInput(f"steps[{i}] routes to a system principal")
+
 async def upsert_action(session: AsyncSession, name: str, body: ActionIn) -> Action:
   validate_action_definition(body)
 
-  values = body.model_dump()
+  values = body.model_dump(exclude={"steps"})
+  values["steps"] = None if body.steps is None else [s.to_json() for s in body.steps]
   stmt = (
     pg_insert(Action)
     .values(name=name, **values)
