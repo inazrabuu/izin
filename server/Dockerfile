@@ -14,10 +14,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
+COPY sdk/ /sdk/
 COPY server/pyproject.toml server/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY server/ ./
-RUN uv sync --locked --no-dev
+RUN uv sync --locked --no-dev 
 
 COPY --from=inbox /inbox/dist ./static
 
