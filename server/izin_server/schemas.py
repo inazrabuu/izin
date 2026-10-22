@@ -6,6 +6,18 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from izin_server.models import OnTimeout, RequestStatus, RiskLevel, Verdict
 
+class StepIn(BaseModel):
+  role: str | None = Field(default=None, max_length=100)
+  principal_ids: list[uuid.UUID] = Field(default_factory=list)
+  after: timedelta
+
+  def to_json(self) -> dict[str, Any]:
+    return {
+      "role": self.role,
+      "principal_ids": [str(p) for p in self.principal_ids],
+      "after": int(self.after.total_seconds())
+    }
+
 class ActionIn(BaseModel):
   display_name: str = Field(max_length=200)
   description: str | None = None
@@ -16,6 +28,7 @@ class ActionIn(BaseModel):
   if_denied: str | None = None
   default_timeout: timedelta = timedelta(hours=4)
   on_timeout: OnTimeout = OnTimeout.DENY
+  steps: list[StepIn] | None = Field(default=None, max_length=5)
 
 class ActionOut(ActionIn):
   model_config = ConfigDict(from_attributes=True)
@@ -62,16 +75,6 @@ class PrincipalOut(PrincipalIn):
   available: bool
   created_at: datetime
 
-# class DecisionIn(BaseModel):
-#   principal_id: uuid.UUID
-#   verdict: Verdict
-#   comment: str | None = Field(default=None, max_length=2000)
-
-#   @model_validator(mode="after")
-#   def deny_needs_reason(self):
-#     if self.verdict == Verdict.DENY and not (self.comment or "").strip():
-#       raise ValueError("a deny needs a reason")
-#     return self
 class PrincipalCreated(PrincipalOut):
   token: str
 
@@ -100,6 +103,7 @@ class InboxItem(BaseModel):
   agent_name: str | None
   created_at: datetime
   expires_at: datetime | None
+  due_at: datetime
 
 class RenderedScreen(BaseModel):
   headline: str
