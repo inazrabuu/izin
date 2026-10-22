@@ -27,7 +27,8 @@ def upgrade() -> None:
   """)
   op.execute(f"""
     INSERT INTO principals (id, name, available) 
-    VALUES ('{TIMEOUT_PRINCIPAL_ID}', 'izin (timeout)', false)
+    VALUES ('{TIMEOUT_PRINCIPAL_ID}', 'izin (timeout)', false) 
+    ON CONFLICT (id) DO NOTHING
   """)
   op.execute("""
     ALTER TABLE principals ADD CONSTRAINT ck_principals_system_inert 
@@ -39,5 +40,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
   op.execute("ALTER TABLE principals DROP CONSTRAINT ck_principals_system_inert")
-  op.execute(f"DELETE FROM principals WHERE id = '{TIMEOUT_PRINCIPAL_ID}'")
+  op.execute(f"""
+    DELETE FROM principals p WHERE p.id = '{TIMEOUT_PRINCIPAL_ID}' 
+    AND NOT EXISTS (SELECT 1 FROM decisions d WHERE d.principal_id = p.id)
+  """)
   op.execute("ALTER TABLE actions DROP CONSTRAINT ck_actions_no_auto_approve_risky")

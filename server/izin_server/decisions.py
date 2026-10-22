@@ -55,6 +55,15 @@ async def write_decision(
     return False
 
   await session.execute(
+    insert(Decision).values(
+      request_id=request_id,
+      principal_id=principal_id,
+      verdict=verdict,
+      comment=comment,
+      rendered_snapshot=rendered
+    )
+  )
+  await session.execute(
     insert(RequestEvent).values(
       request_id=request_id,
       type="decided",
@@ -86,7 +95,7 @@ async def decide(
 def _already_decide(view: DecisionStatusOut) -> AlreadyDecided:
   d = view.decision
   if d is not None:
-    return AlreadyDecided(f"Already {PAST_TENSE[d.verdict]} by {Principal.name} ")
+    return AlreadyDecided(f"Already {PAST_TENSE[d.verdict]} by {d.principal_name} ")
   if view.status == RequestStatus.PENDING:
     return AlreadyDecided("This request has expired and is being closed.")
   return AlreadyDecided(f"This request is {view.status.value.lower()}, not pending.")

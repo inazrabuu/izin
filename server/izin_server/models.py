@@ -119,7 +119,7 @@ class Principal(Base):
       "id::text NOT LIKE '00000000-0000-0000-0000-%' "
       "OR (token_hash IS NULL AND cardinality(roles) = 0)",
       name="system_inert"
-    )
+    ),
   )
 
   id: Mapped[uuid.UUID] = uuid_pk()
