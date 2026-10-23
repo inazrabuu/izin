@@ -60,12 +60,14 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
     _ensure_same_request(existing, action, body)
     return existing, False
 
+  await activate_step(session, new_id, plan, 0)
   await session.execute(
-    insert(Route).values(
-      request_id=new_id, step_index=0, role=settings.default_approver
+    insert(RequestEvent).values(
+      request_id=new_id,
+      type="created",
+      payload={"agent_run_id": body.agent_run_id, "agent_name": body.agent_name},
     )
   )
-  await activate_step(session, new_id, plan, 0)
   await session.execute(
     insert(Outbox).values(
       request_id=new_id,

@@ -10,7 +10,7 @@ from izin import Approvals, Pending
 from izin_server.db import SessionLocal
 from izin_server.models import Action, Decision, OnTimeout, RequestEvent, RiskLevel, Verdict
 from izin_server.system import TIMEOUT_PRINCIPAL_ID
-from izin_server.timeouts import expire_one, sweep_once
+from izin_server.timeouts import advance_one, sweep_once
 
 async def make_action(client, **overrides) -> str:
   name = f"timeout_{uuid.uuid4().hex[:8]}"
@@ -32,7 +32,7 @@ async def view(client, rid) -> dict:
 
 async def test_timeout_deny_records_a_system_decision(client):
   rid = await expired_request(client)
-  assert await expire_one(rid) == Verdict.DENY
+  assert await advance_one(rid) == Verdict.DENY
   v = await view(client, rid)
   assert v["status"] == "DENIED"
   assert v["decision"]["principal_name"] == "izin (timeout)"
@@ -40,17 +40,12 @@ async def test_timeout_deny_records_a_system_decision(client):
 
 async def test_low_risk_timeout_can_auto_approval(client):
   rid = await expired_request(client, risk_level="low", on_timeout="approve")
-  assert await expire_one(rid) == Verdict.APPROVE
+  assert await advance_one(rid) == Verdict.APPROVE
   assert (await view(client, rid))["status"] == "APPROVED"
-
-async def test_escalate_falls_back_to_deny_until_chunk_2(client):
-  rid = await expired_request(client, on_timeout="escalate")
-  assert await expire_one(rid) == Verdict.DENY
-  assert "no escalation step" in (await view(client, rid))["decision"]["comment"]
 
 async def test_events_show_expired_then_decided(client):
   rid = await expired_request(client)
-  await expire_one(rid)
+  await advance_one(rid)
   async with SessionLocal() as s:
     types = list(await s.scalars(
       select(RequestEvent.type).where(RequestEvent.request_id == rid).order_by(RequestEvent.id)
@@ -59,19 +54,19 @@ async def test_events_show_expired_then_decided(client):
 
 async def test_second_sweep_is_a_noop(client):
   rid = await expired_request(client)
-  assert await expire_one(rid) is not None
-  assert await expire_one(rid) is None
+  assert await advance_one(rid) is not None
+  assert await advance_one(rid) is None
   assert await count(Decision, Decision.request_id == rid) == 1
 
 async def test_two_sweepers_race_one_decision(client):
   rid = await expired_request(client)
-  results = await asyncio.gather(expire_one(rid), expire_one(rid))
+  results = await asyncio.gather(advance_one(rid), advance_one(rid))
   assert sorted(r is None for r in results) == [False, True]
   assert await count(Decision, Decision.request_id == rid) == 1
 
 async def test_not_yet_due_is_left_alone(client, pending_request):
   rid = uuid.UUID(pending_request["id"])
-  assert await expire_one(rid) is None
+  assert await advance_one(rid) is None
   assert (await view(client, rid))["status"] == "PENDING"
 
 async def test_human_after_the_deadline_is_refused(client, approver):
@@ -116,7 +111,7 @@ async def test_sdk_receives_the_timeout_decision(client, sdk_http):
   pending = await approvals.check(action, ARGS)
   assert isinstance(pending, Pending)
 
-  await expire_one(uuid.UUID(pending.request_id))
+  await advance_one(uuid.UUID(pending.request_id))
 
   decision = await approvals.check(action, ARGS)
   assert not decision.approved

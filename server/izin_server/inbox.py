@@ -21,14 +21,15 @@ async def list_inbox(session: AsyncSession, principal: Principal) -> list[InboxI
       select(
         Request.id, Request.rendered, Request.agent_name,
         Request.created_at, Request.expires_at,
-        Action.display_name, Action.risk_level
+        Action.display_name, Action.risk_level,
+        Route.due_at
       )
       .join(Action, Action.id == Request.action_id)
       .join(current, current.c.request_id == Request.id)
       .join(Route, (Route.request_id == Request.id) & (Route.step_index == current.c.step))
       .where(Request.status == RequestStatus.PENDING)
       .where(or_(Route.principal_ids.contains([principal.id]), Route.role.in_(principal.roles)))
-      .order_by(Request.expires_at.asc().nulls_last(), Request.created_at.asc())
+      .order_by(Route.due_at.asc(), Request.created_at.asc())
       .limit(100)
     )
   ).all()
@@ -41,7 +42,8 @@ async def list_inbox(session: AsyncSession, principal: Principal) -> list[InboxI
       headline=r.rendered["headline"],
       agent_name=r.agent_name,
       created_at=r.created_at,
-      expires_at=r.expires_at
+      expires_at=r.expires_at,
+      due_at=r.due_at
     )
     for r in rows
   ]
