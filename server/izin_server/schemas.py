@@ -84,6 +84,7 @@ class MeOut(BaseModel):
   id: uuid.UUID
   name: str
   roles: list[str]
+  available: bool
   
 class InboxDecisionIn(BaseModel):
   verdict: Verdict
@@ -136,3 +137,6 @@ class InboxDetail(BaseModel):
   expires_at: datetime | None
   similar_approved_7d: int
   decision: DecisionOut | None
+
+class Availability(BaseModel):
+  available: bool
