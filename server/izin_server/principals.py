@@ -1,5 +1,7 @@
 import uuid
+import logging
 
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +10,8 @@ from izin_server.errors import InvalidInput, NotFound, Forbidden
 from izin_server.models import Principal
 from izin_server.schemas import PrincipalIn
 from izin_server.system import SYSTEM_PRINCIPAL_IDS
+
+log = logging.getLogger("izin.principals")
 
 async def create_principal(session: AsyncSession, body: PrincipalIn) -> tuple[Principal, str]:
   token = new_principal_token()
@@ -31,3 +35,20 @@ async def rotate_token(session: AsyncSession, principal_id: uuid.UUID) -> tuple[
   principal.token_hash = hash_token(token)
   await session.commit()
   return principal, token
+
+async def set_availability(
+  session: AsyncSession, principal_id: uuid.UUID, available: bool, *, by: str
+) -> bool:
+  if principal_id in SYSTEM_PRINCIPAL_IDS:
+    raise Forbidden("system principals have no availability")
+  updated = await session.scalar(
+    update(Principal)
+    .where(Principal.id == principal_id)
+    .values(available=available)
+    .returning(Principal.id)
+  )
+  if updated is None:
+    raise NotFound("principal not found")
+  await session.commit()
+  log.info("principal %s marked %s by %s", principal_id, "available" if available else "away", by)
+  return available
