@@ -10,7 +10,7 @@ from sqlalchemy.orm import aliased
 from izin_server.db import SessionLocal
 from izin_server.decisions import lock_current_route, write_decision
 from izin_server.models import OnTimeout, Request, RequestEvent, RequestStatus, Route, Verdict
-from izin_server.routing import activate_step
+from izin_server.routing import route_to, close_unroutable
 from izin_server.system import TIMEOUT_PRINCIPAL_ID
 
 log = logging.getLogger("izin.timeouts")
@@ -41,8 +41,7 @@ async def advance_one(request_id: uuid.UUID) -> Outcome | None:
 
     plan = await session.scalar(select(Request.plan).where(Request.id == request_id))
     if route.step_index + 1 < len(plan["steps"]):
-      await _escalate(session, request_id, plan, route.step_index)
-      outcome: Outcome = "escalated"
+      outcome = await _escalate(session, request_id, plan, route.step_index)
     else:
       outcome = await _expire(session, request_id, plan)
     await session.commit()
@@ -63,16 +62,21 @@ async def _move(
 
 async def _escalate(
   session: AsyncSession, request_id: uuid.UUID, plan: dict[str, Any], from_step: int
-) -> None:
+) -> Outcome:
+  to_step = await route_to(session, request_id, plan, from_step + 1)
+  if to_step is None:
+    await close_unroutable(session, request_id)
+    return Verdict.DENY
+
   await _move(session, request_id, RequestStatus.PENDING, RequestStatus.ESCALATED)
-  to_step = await activate_step(session, request_id, plan, from_step + 1)
   await _move(session, request_id, RequestStatus.ESCALATED, RequestStatus.PENDING)
   await session.execute(
     insert(RequestEvent).values(
       request_id=request_id, type="escalated",
-      payload={"from_step": from_step, "to_step": to_step},
+      payload={"from_step": from_step, "to_step": to_step}
     )
   )
+  return "escalated"
 
 async def _expire(session: AsyncSession, request_id: uuid.UUID, plan: dict[str, Any]) -> Verdict:
   await _move(session, request_id, RequestStatus.PENDING, RequestStatus.EXPIRED)
