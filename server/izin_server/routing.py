@@ -59,7 +59,7 @@ async def route_to(
           step_index=index,
           role=step["role"],
           principal_ids=[uuid.UUID(p) for p in step["principal_ids"]],
-          due_at=func.now() + timedelta(second=step["after"])
+          due_at=func.now() + timedelta(seconds=step["after"])
         )
       )
       return index
