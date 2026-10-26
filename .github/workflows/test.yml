@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        images: postgres:16
+        image: postgres:16
         env:
           {
             POSTGRES_USER: izin,
