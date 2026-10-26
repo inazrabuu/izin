@@ -12,11 +12,12 @@ from izin_server.db import get_session
 from izin_server.schemas import (
   ActionIn, ActionOut, RequestIn, RequestOut, DecisionStatusOut, 
   InboxDecisionIn, InboxDetail, InboxItem, MeOut, PrincipalCreated, PrincipalIn, PrincipalOut,
+  Availability
 )
 from izin_server.decisions import decide, wait_for_decision, consume
 from izin_server.inbox import list_inbox, load_detail
 from izin_server.models import Principal
-from izin_server.principals import create_principal, rotate_token
+from izin_server.principals import create_principal, rotate_token, set_availability
 
 # router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 admin_router = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])
@@ -40,6 +41,14 @@ async def post_principal(body: PrincipalIn, session: Session):
 async def post_principal_token(principal_id: uuid.UUID, session: Session):
   principal, token = await rotate_token(session, principal_id)
   return PrincipalCreated(**PrincipalOut.model_validate(principal).model_dump(), token=token)
+
+@admin_router.put("/principals/{principal_id}/availability", response_model=Availability)
+async def put_principal_availablity(
+  principal_id: uuid.UUID, body: Availability, session: Session
+):
+  return Availability(
+    available=await set_availability(session, principal_id, body.available, by="admin")
+  )
 
 @agent_router.post("/requests", response_model=RequestOut, status_code=201)
 async def post_request(body: RequestIn, response: Response, session: Session):
@@ -76,3 +85,9 @@ async def post_inbox_decision(
 ):
   await decide(session, request_id, me, body)
   return await load_detail(session, request_id, me)
+
+@inbox_router.put("/me/availability", response_model=Availability)
+async def put_my_availability(body: Availability, me: Me, session: Session):
+  return Availability(
+    available=await set_availability(session, me.id, body.available, by="self")
+  )
