@@ -40,8 +40,12 @@ def test_tuples_become_lists():
 
 @pytest.mark.parametrize(
   "secret", 
-  ["sk-" + "a" * 24, "AKIA" + "ABCDEFGHIJKLMNOP", "gh" + "p_" + "a" * 36],
-  "izin_p_" + "a" * 43
+  [
+    "sk-" + "a" * 24, 
+    "AKIA" + "ABCDEFGHIJKLMNOP", 
+    "gh" + "p_" + "a" * 36,
+    "izin_p_" + "a" * 43
+  ],
 )
 def test_secrets_are_rejected_without_echoing_them(secret):
   with pytest.raises(SecretInArgs) as exc:
