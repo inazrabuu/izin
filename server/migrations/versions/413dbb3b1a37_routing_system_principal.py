@@ -21,7 +21,7 @@ ROUTING_PRINCIPAL_ID = "00000000-0000-0000-0000-000000000002"
 
 def upgrade() -> None:
   op.execute(f"""
-    ISNERT INTO principals (id, name, available) 
+    INSERT INTO principals (id, name, available) 
     VALUES ('{ROUTING_PRINCIPAL_ID}', 'izin (routing)', false) 
     ON CONFLICT (id) DO NOTHING
   """)
