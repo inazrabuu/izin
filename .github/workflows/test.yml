@@ -15,8 +15,8 @@ jobs:
           }
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U izin" --health_interval 2s
-          --health-timeout 3s --health_retries 15
+          --health-cmd "pg_isready -U izin" --health-interval 2s
+          --health-timeout 3s --health-retries 15
     defaults: { run: { working-directory: server } }
     steps:
       - uses: actions/checkout@v4
