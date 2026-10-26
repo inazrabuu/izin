@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from izin_server.models import OnTimeout, RequestStatus, RiskLevel, Verdict
 
+
 class StepIn(BaseModel):
   role: str | None = Field(default=None, max_length=100)
   principal_ids: list[uuid.UUID] = Field(default_factory=list)

@@ -6,9 +6,10 @@ from sqlalchemy import func, insert, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.config import settings
-from izin_server.models import Action, Route, Principal, RequestEvent, Verdict
 from izin_server.decisions import write_decision
+from izin_server.models import Action, Principal, RequestEvent, Route, Verdict
 from izin_server.system import ROUTING_PRINCIPAL_ID
+
 
 def build_plan(action: Action) -> dict[str, Any]:
   steps = action.steps or [{

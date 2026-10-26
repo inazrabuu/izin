@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from izin_server.config import settings
 from izin_server.db import SessionLocal, engine
 from izin_server.models import Outbox, OutboxStatus, RequestEvent
-from izin_server.webhooks import encode_body, sign
 from izin_server.timeouts import sweep_once
+from izin_server.webhooks import encode_body, sign
 
 log = logging.getLogger("izin.worker")
 

@@ -5,17 +5,15 @@ Revises: ec454021f6b8
 Create Date: 2026-09-27 16:45:27.402755
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision: str = '831fe903b26a'
-down_revision: Union[str, Sequence[str], None] = 'ec454021f6b8'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = 'ec454021f6b8'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 GUARD_WITH_TRANSITIONS = """
 CREATE OR REPLACE FUNCTION izin_requests_guard() RETURNS trigger

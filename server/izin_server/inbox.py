@@ -6,9 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.decisions import authorize, load_view
 from izin_server.models import (
-  Action, Decision, Principal, Request, RequestStatus, Route, Verdict
+  Action,
+  Decision,
+  Principal,
+  Request,
+  RequestStatus,
+  Route,
+  Verdict,
 )
 from izin_server.schemas import InboxDetail, InboxItem, RenderedScreen
+
 
 async def list_inbox(session: AsyncSession, principal: Principal) -> list[InboxItem]:
   current = (

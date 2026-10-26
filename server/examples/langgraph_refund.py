@@ -2,11 +2,11 @@ import asyncio
 import uuid
 from typing import TypedDict
 
+from izin.langgraph import LangGraphApprovals, pending_request_ids
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from izin.langgraph import LangGraphApprovals, pending_request_ids
 
 class State(TypedDict, total=False):
   order_id: str
@@ -19,7 +19,7 @@ izin = LangGraphApprovals(url="http://localhost:8000", token="dev-token", agent_
 async def approve_and_refund(state: State, config: RunnableConfig) -> State:
   decision = await izin.in_node(config).require(
     "refund_order",
-    args={k: state[k] for k in {"order_id", "amount_idr", "customer"}},
+    args={k: state[k] for k in ("order_id", "amount_idr", "customer")},
     rationale="Courier tracking shows delivery failure."
   )
   return {"outcome": "refunded" if decision.approved else f"denied: {decision.comment}"}

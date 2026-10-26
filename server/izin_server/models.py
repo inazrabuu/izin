@@ -6,7 +6,6 @@ from typing import Any
 from sqlalchemy import (
   BigInteger,
   CheckConstraint,
-  Enum as SAEnum,
   ForeignKey,
   Identity,
   Index,
@@ -14,8 +13,9 @@ from sqlalchemy import (
   String,
   Text,
   UniqueConstraint,
-  text
+  text,
 )
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, INTERVAL, JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 

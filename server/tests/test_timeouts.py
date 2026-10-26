@@ -2,15 +2,23 @@ import asyncio
 import uuid
 
 import pytest
+from helpers import ADMIN, ARGS, action_payload, count, post_decision, request_body
+from izin import Approvals, Pending
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from helpers import ADMIN, ARGS, action_payload, count, post_decision, request_body
-from izin import Approvals, Pending
 from izin_server.db import SessionLocal
-from izin_server.models import Action, Decision, OnTimeout, RequestEvent, RiskLevel, Verdict
+from izin_server.models import (
+  Action,
+  Decision,
+  OnTimeout,
+  RequestEvent,
+  RiskLevel,
+  Verdict,
+)
 from izin_server.system import TIMEOUT_PRINCIPAL_ID
 from izin_server.timeouts import advance_one, sweep_once
+
 
 async def make_action(client, **overrides) -> str:
   name = f"timeout_{uuid.uuid4().hex[:8]}"

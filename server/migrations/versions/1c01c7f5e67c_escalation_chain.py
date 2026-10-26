@@ -5,18 +5,17 @@ Revises: 48c7ad27ea67
 Create Date: 2026-10-22 16:59:40.346689
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import INTERVAL, JSONB
-
 
 # revision identifiers, used by Alembic.
 revision: str = '1c01c7f5e67c'
-down_revision: Union[str, Sequence[str], None] = '48c7ad27ea67'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = '48c7ad27ea67'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

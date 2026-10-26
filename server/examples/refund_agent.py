@@ -8,6 +8,7 @@ import sys
 
 from izin import Approvals
 
+
 async def main(run_id: str) -> None:
   async with Approvals(
     url="http://localhost:8000", token="dev-token",

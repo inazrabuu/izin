@@ -9,8 +9,15 @@ from sqlalchemy.orm import aliased
 
 from izin_server.db import SessionLocal
 from izin_server.decisions import lock_current_route, write_decision
-from izin_server.models import OnTimeout, Request, RequestEvent, RequestStatus, Route, Verdict
-from izin_server.routing import route_to, close_unroutable
+from izin_server.models import (
+  OnTimeout,
+  Request,
+  RequestEvent,
+  RequestStatus,
+  Route,
+  Verdict,
+)
+from izin_server.routing import close_unroutable, route_to
 from izin_server.system import TIMEOUT_PRINCIPAL_ID
 
 log = logging.getLogger("izin.timeouts")

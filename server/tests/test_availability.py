@@ -1,14 +1,22 @@
 import uuid
 
-from sqlalchemy import func, select
-
 from helpers import ADMIN, ARGS, as_principal, post_decision
 from izin import Approvals
+from sqlalchemy import func, select
+from test_escalation import (
+  chain,
+  create_request,
+  event_types,
+  make_principal,
+  put_action,
+  unique,
+)
+
 from izin_server.db import SessionLocal
 from izin_server.models import RequestEvent, Route, Verdict
 from izin_server.system import TIMEOUT_PRINCIPAL_ID
 from izin_server.timeouts import advance_one
-from test_escalation import chain, create_request, event_types, make_principal, put_action, unique
+
 
 async def set_available(client, principal: dict, available: bool) -> None:
   r = await client.put(

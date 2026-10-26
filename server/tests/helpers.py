@@ -1,5 +1,7 @@
 import secrets
-from sqlalchemy import select, func
+
+from sqlalchemy import func, select
+
 from izin_server.db import SessionLocal
 
 REFUND_SCHEMA = {

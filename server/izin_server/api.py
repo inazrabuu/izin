@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Response, Query
+from fastapi import APIRouter, Depends, Path, Query, Response
 from fastapi import Request as HTTPRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,15 +9,25 @@ from izin_server.actions import upsert_action
 from izin_server.auth import current_principal, require_admin, require_agent
 from izin_server.creation import create_request
 from izin_server.db import get_session
-from izin_server.schemas import (
-  ActionIn, ActionOut, RequestIn, RequestOut, DecisionStatusOut, 
-  InboxDecisionIn, InboxDetail, InboxItem, MeOut, PrincipalCreated, PrincipalIn, PrincipalOut,
-  Availability
-)
-from izin_server.decisions import decide, wait_for_decision, consume
+from izin_server.decisions import consume, decide, wait_for_decision
 from izin_server.inbox import list_inbox, load_detail
 from izin_server.models import Principal
 from izin_server.principals import create_principal, rotate_token, set_availability
+from izin_server.schemas import (
+  ActionIn,
+  ActionOut,
+  Availability,
+  DecisionStatusOut,
+  InboxDecisionIn,
+  InboxDetail,
+  InboxItem,
+  MeOut,
+  PrincipalCreated,
+  PrincipalIn,
+  PrincipalOut,
+  RequestIn,
+  RequestOut,
+)
 
 # router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 admin_router = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])

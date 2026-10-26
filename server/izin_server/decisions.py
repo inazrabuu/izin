@@ -3,15 +3,27 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from sqlalchemy import insert, select, update, func, or_
+from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.db import SessionLocal
-from izin_server.errors import AlreadyDecided, Forbidden, InvalidInput, NotFound, NotDecided
-from izin_server.models import (
-  Decision, Principal, Request, RequestEvent, RequestStatus, Route, Verdict
+from izin_server.errors import (
+  AlreadyDecided,
+  Forbidden,
+  InvalidInput,
+  NotDecided,
+  NotFound,
 )
-from izin_server.schemas import InboxDecisionIn, DecisionOut, DecisionStatusOut
+from izin_server.models import (
+  Decision,
+  Principal,
+  Request,
+  RequestEvent,
+  RequestStatus,
+  Route,
+  Verdict,
+)
+from izin_server.schemas import DecisionOut, DecisionStatusOut, InboxDecisionIn
 
 POLL_INTERVAL = 1.0
 

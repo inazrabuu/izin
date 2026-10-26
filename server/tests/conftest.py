@@ -8,13 +8,12 @@ os.environ["IZIN_ADMIN_TOKEN"] = "test-admin-token"
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
+from helpers import ADMIN, action_payload, request_body
 from httpx import ASGITransport, AsyncClient
-import httpx
-
-from helpers import action_payload, request_body, ADMIN
 
 SERVER_DIR = Path(__file__).resolve().parent.parent
 

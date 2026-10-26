@@ -9,7 +9,6 @@ MAX_VALUE_LEN = 120
 
 class RenderError(ValueError):
   """The template can't be rendered against these args. Maps to HTTP 422."""
-  pass
 
 def rupiah(value: Any) -> str:
   if isinstance(value, bool) or not isinstance(value, int):

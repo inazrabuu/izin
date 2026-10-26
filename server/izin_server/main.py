@@ -1,8 +1,8 @@
 import logging
-from pathlib import Path
-from importlib.metadata import version
-
 from contextlib import asynccontextmanager
+from importlib.metadata import version
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, Response, status
 from fastapi import Request as HTTPRequest
 from fastapi.responses import JSONResponse
@@ -10,10 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from izin_server.db import engine, get_session
 from izin_server.api import admin_router, agent_router, inbox_router
-from izin_server.errors import IzinError
 from izin_server.config import settings
+from izin_server.db import engine, get_session
+from izin_server.errors import IzinError
 
 log = logging.getLogger("izin")
 

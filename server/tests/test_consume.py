@@ -1,7 +1,9 @@
 import uuid
 
 from helpers import count, post_decision
+
 from izin_server.models import RequestEvent
+
 
 def consume(client, req):
   return client.post(f"/v1/requests/{req['id']}/consume")

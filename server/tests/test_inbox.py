@@ -2,8 +2,10 @@ import hashlib
 import uuid
 
 from helpers import ADMIN, as_principal, post_decision, request_body
+
 from izin_server.db import SessionLocal
 from izin_server.models import Principal
+
 
 async def create_outsider(client) -> dict:
   r = await client.post("/v1/principals", json={"name": "Budi", "roles": ["developer"]}, headers=ADMIN)

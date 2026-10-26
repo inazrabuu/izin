@@ -7,12 +7,12 @@ from sqlalchemy import func, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from izin_server.config import settings
 from izin_server.errors import IdempotencyConflict, InvalidInput
-from izin_server.models import Action, Outbox, Request, RequestEvent, Route
+from izin_server.models import Action, Outbox, Request, RequestEvent
 from izin_server.rendering import RenderError, render_screen
+from izin_server.routing import build_plan, close_unroutable, route_to, total_wait
 from izin_server.schemas import RequestIn
-from izin_server.routing import build_plan, total_wait, route_to, close_unroutable
+
 
 async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Request, bool]:
   action = await session.scalar(select(Action).where(Action.name == body.action))

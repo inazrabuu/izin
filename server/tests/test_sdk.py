@@ -3,15 +3,21 @@ import time
 import uuid
 from contextlib import suppress
 
-import httpx
 import pytest
-from httpx import ASGITransport
+from helpers import ARGS, HEADLINE, post_decision
+from izin import (
+  Approvals,
+  ApprovalTimeout,
+  ConcurrentDuplicate,
+  Decision,
+  Denied,
+  Pending,
+)
 from sqlalchemy import select
 
-from helpers import ARGS, post_decision, HEADLINE
-from izin import Approvals, ApprovalTimeout, ConcurrentDuplicate, Denied, Decision, Pending
 from izin_server.db import SessionLocal
 from izin_server.models import Request, RequestStatus
+
 
 def new_run() -> str:
   return f"run-{uuid.uuid4().hex}"

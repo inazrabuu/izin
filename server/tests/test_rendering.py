@@ -6,7 +6,7 @@ from izin_server.rendering import (
   render_screen,
   render_text,
   rupiah,
-  template_variables
+  template_variables,
 )
 
 TRD_TEMPLATE = """Refund Rp. {{ amount_idr | rupiah }} to {{ customer.name }} for order {{ order_id }}."""

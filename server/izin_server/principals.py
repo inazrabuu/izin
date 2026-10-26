@@ -1,12 +1,12 @@
-import uuid
 import logging
+import uuid
 
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.auth import hash_token, new_principal_token
-from izin_server.errors import InvalidInput, NotFound, Forbidden
+from izin_server.errors import Forbidden, InvalidInput, NotFound
 from izin_server.models import Principal
 from izin_server.schemas import PrincipalIn
 from izin_server.system import SYSTEM_PRINCIPAL_IDS
