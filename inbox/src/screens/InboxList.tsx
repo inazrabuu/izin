@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, type InboxItem } from "../api";
-import { timeAgo } from "../format";
+import { api, ApiError, type InboxItem, type Me } from "../api";
+import { timeAgo, timeUntil } from "../format";
 
 export function InboxList({ onSignOut }: { onSignOut: () => void }) {
   const [items, setItems] = useState<InboxItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,14 +29,42 @@ export function InboxList({ onSignOut }: { onSignOut: () => void }) {
     };
   }, [onSignOut]);
 
+  useEffect(() => {
+    api
+      .me()
+      .then(setMe)
+      .catch(() => {});
+  }, []);
+
+  async function toggleAway() {
+    if (!me) return;
+    try {
+      const { available } = await api.setAvailability(!me.available);
+      setMe({ ...me, available });
+    } catch {
+      setError("Couldn't update your availability.");
+    }
+  }
+
   return (
     <main>
       <header className="topbar">
         <h1>Waiting For You</h1>
+        {me && (
+          <button className="link" onClick={toggleAway}>
+            {me.available ? "Set Away" : "I'm back"}
+          </button>
+        )}
         <button className="link" onClick={onSignOut}>
           Sign Out
         </button>
       </header>
+      {me && !me.available && (
+        <p className="meta">
+          You're away. Requests skip your step when nobody else on it is
+          available.
+        </p>
+      )}
       {error && <p className="error">{error}</p>}
       {items === null ? (
         <p className="meta">Loading</p>
@@ -51,7 +80,8 @@ export function InboxList({ onSignOut }: { onSignOut: () => void }) {
             </div>
             <p className="item-heading">{item.headline}</p>
             <div className="meta">
-              {item.agent_name ?? "agent"} · {timeAgo(item.created_at)}
+              {item.agent_name ?? "agent"} · {timeAgo(item.created_at)} · due
+              {timeUntil(item.due_at)}
             </div>
           </a>
         ))

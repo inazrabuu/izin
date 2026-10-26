@@ -8,6 +8,7 @@ export interface InboxItem {
   agent_name: string | null;
   created_at: string;
   expires_at: string | null;
+  due_at: string;
 }
 
 export interface Decision {
@@ -42,6 +43,7 @@ export interface Me {
   id: string;
   name: string;
   roles: string[];
+  available: boolean;
 }
 
 const TOKEN_KEY = "izin.token";
@@ -97,5 +99,10 @@ export const api = {
     call<InboxDetail>(`/requests/${id}/decision`, {
       method: "POST",
       body: JSON.stringify({ verdict, comment: comment?.trim() || null }),
+    }),
+  setAvailability: (available: boolean) =>
+    call<{ available: boolean }>("/me/availability", {
+      method: "PUT",
+      body: JSON.stringify({ available }),
     }),
 };
