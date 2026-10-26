@@ -15,7 +15,7 @@ jobs:
           }
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U izin" --health_invterval 2s
+          --health-cmd "pg_isready -U izin" --health_interval 2s
           --health-timeout 3s --health_retries 15
     defaults: { run: { working-directory: server } }
     steps:
