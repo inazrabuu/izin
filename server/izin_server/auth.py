@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+from typing import Annotated
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -13,6 +14,8 @@ from izin_server.models import Principal
 
 _bearer = HTTPBearer(auto_error=False)
 PRINCIPAL_TOKEN_PREFIX = "izin_p_"
+Bearer = Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)]
+DbSession = Annotated[AsyncSession, Depends(get_session)]
 
 def new_principal_token() -> str:
   return PRINCIPAL_TOKEN_PREFIX + secrets.token_urlsafe(32)
@@ -24,15 +27,15 @@ def _check_static(creds: HTTPAuthorizationCredentials | None, expected: str, kin
   if creds is None or not secrets.compare_digest(creds.credentials.encode(), expected.encode()):
     raise Unauthorized(f"missing or invalid {kind} token")
 
-async def require_agent(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> None:
+async def require_agent(creds: Bearer) -> None:
   _check_static(creds, settings.api_token, "agent")
 
-async def require_admin(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> None:
+async def require_admin(creds: Bearer) -> None:
   _check_static(creds, settings.admin_token, "admin")
 
 async def current_principal(
-  creds: HTTPAuthorizationCredentials | None  = Depends(_bearer),
-  session: AsyncSession = Depends(get_session)
+  creds: Bearer,
+  session: DbSession
 ) -> Principal:
   if creds is None or not creds.credentials.startswith(PRINCIPAL_TOKEN_PREFIX):
     raise Unauthorized("missing or invalid inbox token")

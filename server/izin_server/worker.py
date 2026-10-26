@@ -172,7 +172,7 @@ async def main() -> None:
         log.exception("delivery iteration failed")
       try:
         n += await sweep_once()
-      except:
+      except Exception:
         log.exception("timeout sweep failed")
       if n == 0:
         try:

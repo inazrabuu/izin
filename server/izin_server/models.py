@@ -1,7 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import (
   BigInteger,
@@ -29,7 +29,7 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
   metadata = MetaData(naming_convention=NAMING_CONVENTION)
-  type_annotation_map = {
+  type_annotation_map: ClassVar[dict[Any, Any]] = {
     dict[str, Any]: JSONB,
     datetime: TIMESTAMP(timezone=True),
     timedelta: INTERVAL,

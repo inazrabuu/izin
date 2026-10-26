@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import Depends, FastAPI, Response, status
 from fastapi import Request as HTTPRequest
@@ -33,12 +34,13 @@ app.include_router(agent_router)
 app.include_router(inbox_router)
 
 @app.get("/healthz")
-async def healthz(response: Response, session: AsyncSession = Depends(get_session)):
+async def healthz(response: Response, session: Annotated[AsyncSession, Depends(get_session)]):
   try:
     await session.execute(text("SELECT 1"))
     return {"status": "ok", "db": "ok"}
   except Exception:
     response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    log.warning("health check: database unreachable", exc_info=True)
     return {"status": "degraded", "db": "unreachable"}
 
 @app.exception_handler(IzinError)
