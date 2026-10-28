@@ -10,7 +10,6 @@ from izin_server.db import SessionLocal
 from izin_server.errors import (
   AlreadyDecided,
   Forbidden,
-  InvalidInput,
   NotDecided,
   NotFound,
 )
@@ -23,8 +22,8 @@ from izin_server.models import (
   Route,
   Verdict,
 )
+from izin_server.modify import changes_between, prepare_modify
 from izin_server.schemas import DecisionOut, DecisionStatusOut, InboxDecisionIn
-from izin_server.modify import prepare_modify, changes_between
 
 POLL_INTERVAL = 1.0
 

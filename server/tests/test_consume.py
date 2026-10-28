@@ -1,7 +1,6 @@
 import uuid
 
 from helpers import count, post_decision
-
 from izin_server.models import RequestEvent
 
 

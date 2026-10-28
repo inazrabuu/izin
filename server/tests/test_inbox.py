@@ -2,7 +2,6 @@ import hashlib
 import uuid
 
 from helpers import ADMIN, as_principal, post_decision, request_body
-
 from izin_server.db import SessionLocal
 from izin_server.models import Principal
 

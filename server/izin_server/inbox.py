@@ -14,7 +14,7 @@ from izin_server.models import (
   Route,
   Verdict,
 )
-from izin_server.schemas import InboxDetail, InboxItem, RenderedScreen, EditableOut
+from izin_server.schemas import EditableOut, InboxDetail, InboxItem, RenderedScreen
 
 
 async def list_inbox(session: AsyncSession, principal: Principal) -> list[InboxItem]:

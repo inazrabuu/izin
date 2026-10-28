@@ -1,6 +1,8 @@
 import asyncio
 import uuid
 
+from sqlalchemy import select
+
 from helpers import (
   ADMIN,
   ARGS,
@@ -11,8 +13,6 @@ from helpers import (
   request_body,
 )
 from izin import Approvals, Pending
-from sqlalchemy import select
-
 from izin_server.db import SessionLocal
 from izin_server.models import RequestEvent, Route, Verdict
 from izin_server.timeouts import advance_one

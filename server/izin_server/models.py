@@ -197,7 +197,6 @@ class Decision(Base):
   request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("requests.id"), unique=True)
   principal_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("principals.id"))
   verdict: Mapped[Verdict] = mapped_column(str_enum(Verdict))
-  modified_args: Mapped[dict[str, Any] | None]
   comment: Mapped[str | None] = mapped_column(Text)
   decided_at: Mapped[datetime] = created_at()
   rendered_snapshot: Mapped[dict[str, Any]]

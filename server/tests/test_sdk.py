@@ -4,6 +4,8 @@ import uuid
 from contextlib import suppress
 
 import pytest
+from sqlalchemy import select
+
 from helpers import ARGS, HEADLINE, post_decision
 from izin import (
   Approvals,
@@ -13,8 +15,6 @@ from izin import (
   Denied,
   Pending,
 )
-from sqlalchemy import select
-
 from izin_server.db import SessionLocal
 from izin_server.models import Request, RequestStatus
 

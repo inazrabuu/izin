@@ -10,6 +10,7 @@ from izin_server.errors import InvalidInput
 from izin_server.models import Action, Request
 from izin_server.rendering import RenderError, render_screen
 
+
 def screen_spec(action: Action) -> dict[str, Any]:
   """Everything needed to render or edit this request's screen, frozen at creation."""
   return {

@@ -2,10 +2,11 @@ import asyncio
 import uuid
 from typing import TypedDict
 
-from izin.langgraph import LangGraphApprovals, pending_request_ids
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
+
+from izin.langgraph import LangGraphApprovals, pending_request_ids
 
 
 class State(TypedDict, total=False):
