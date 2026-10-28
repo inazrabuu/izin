@@ -16,5 +16,6 @@
   },
   "render_template": "Refund Rp {{ amount_idr | rupiah }} to {{ customer.name }} for order {{ order_id }}.",
   "blast_radius": "Rp {{ amount_idr | rupiah }} leaves the company account.",
-  "if_denied": "The agent hands the case to customer service."
+  "if_denied": "The agent hands the case to customer service.",
+  "editable": [{ "field": "amount_idr", "only": "decrease" }]
 }

@@ -14,7 +14,7 @@ from izin_server.models import (
   Route,
   Verdict,
 )
-from izin_server.schemas import InboxDetail, InboxItem, RenderedScreen
+from izin_server.schemas import InboxDetail, InboxItem, RenderedScreen, EditableOut
 
 
 async def list_inbox(session: AsyncSession, principal: Principal) -> list[InboxItem]:
@@ -76,10 +76,20 @@ async def load_detail(
     .join(Request, Request.id == Decision.request_id)
     .where(
       Request.action_id == action.id,
-      Decision.verdict == Verdict.APPROVE,
+      Decision.verdict.in_([Verdict.APPROVE, Verdict.MODIFY]),
       Decision.decided_at > func.now() - timedelta(days=7)
     )
   )
+
+  spec = request.screen_spec
+  props = spec["args_schema"].get("properties", {})
+  editable = [
+    EditableOut(
+      field=e["field"], type=props[e["field"]]["type"],
+      only=e.get("only"), value=request.args.get(e["field"])
+    )
+    for e in spec["editable"]
+  ]
 
   return InboxDetail(
     id=request.id,
@@ -94,5 +104,6 @@ async def load_detail(
     created_at=request.created_at,
     expires_at=request.expires_at,
     similar_approved_7d=similar,
-    decision=view.decision
+    decision=view.decision,
+    editable=editable
   )

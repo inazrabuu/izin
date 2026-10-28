@@ -14,6 +14,8 @@ export function RequestDetail({
   const [req, setReq] = useState<InboxDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [denying, setDenying] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [showFullWhy, setShowFullWhy] = useState(false);
@@ -38,13 +40,23 @@ export function RequestDetail({
     load();
   }, [load]);
 
-  async function decide(verdict: "approve" | "deny") {
+  async function decide(
+    verdict: "approve" | "deny" | "modify",
+    changes?: Record<string, unknown>,
+  ) {
     setBusy(true);
     setError(null);
     try {
       setReq(
-        await api.decide(id, verdict, verdict === "deny" ? reason : undefined),
+        await api.decide(
+          id,
+          verdict,
+          verdict === "approve" ? undefined : reason,
+          changes,
+        ),
       );
+      setDenying(false);
+      setChanging(false);
     } catch (e) {
       fail(e);
       if (e instanceof ApiError && e.code === "already_decided") await load(); // show who did
@@ -67,6 +79,23 @@ export function RequestDetail({
       </main>
     );
   }
+
+  function startChanging() {
+    setDraft(
+      Object.fromEntries(req!.editable.map((f) => [f.field, String(f.value)])),
+    );
+    setReason("");
+    setChanging(true);
+  }
+
+  const changes: Record<string, unknown> = {};
+  for (const f of req.editable) {
+    const raw = (draft[f.field] ?? "").trim();
+    if (raw == "") continue;
+    const value = f.type == "string" ? raw : Number(raw);
+    if (value !== f.value) changes[f.field] = value;
+  }
+  const hasChanges = Object.keys(changes).length > 0;
 
   const why = req.rationale ?? "";
   const shortWhy = truncateWords(why, WHY_WORD_LIMIT);
@@ -159,12 +188,56 @@ export function RequestDetail({
 
       {req.decision ? (
         <p className="card outcome">
-          {req.decision.verdict === "deny" ? "Denied" : "Approved"} by{" "}
-          {req.decision.principal_name} · {timeAgo(req.decision.decided_at)}
+          {req.decision.verdict === "deny"
+            ? "Denied"
+            : req.decision.verdict === "modify"
+              ? "Approved with changes"
+              : "Approved"}{" "}
+          by {req.decision.principal_name} · {timeAgo(req.decision.decided_at)}
           {req.decision.comment && (
             <span className="meta"> — “{req.decision.comment}”</span>
           )}
         </p>
+      ) : changing ? (
+        <div className="actions stacked">
+          {req.editable.map((f) => (
+            <label key={f.field} className="meta">
+              {f.field}
+              {f.only && ` (may only ${f.only})`}
+              <input
+                type={f.type === "string" ? "text" : "number"}
+                value={draft[f.field] ?? ""}
+                onChange={(e) =>
+                  setDraft({ ...draft, [f.field]: e.target.value })
+                }
+              />
+            </label>
+          ))}
+          <label htmlFor="change-reason" className="meta">
+            Why are you changing this? The agent receives your reason.
+          </label>
+          <textarea
+            id="change-reason"
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <div className="row">
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => setChanging(false)}
+            >
+              Cancel
+            </button>
+            <button
+              disabled={busy || !hasChanges || !reason.trim()}
+              onClick={() => decide("modify", changes)}
+            >
+              Approve with changes
+            </button>
+          </div>
+        </div>
       ) : denying ? (
         <div className="actions stacked">
           <label htmlFor="reason" className="meta">
@@ -203,6 +276,15 @@ export function RequestDetail({
           >
             Deny
           </button>
+          {req.editable.length > 0 && (
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={startChanging}
+            >
+              Change…
+            </button>
+          )}
           <button
             className="approve"
             disabled={busy}

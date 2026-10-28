@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -18,25 +18,6 @@ class StepIn(BaseModel):
       "principal_ids": [str(p) for p in self.principal_ids],
       "after": int(self.after.total_seconds())
     }
-
-class ActionIn(BaseModel):
-  display_name: str = Field(max_length=200)
-  description: str | None = None
-  risk_level: RiskLevel
-  args_schema: dict[str, Any]
-  render_template: str
-  blast_radius: str | None = None
-  if_denied: str | None = None
-  default_timeout: timedelta = timedelta(hours=4)
-  on_timeout: OnTimeout = OnTimeout.DENY
-  steps: list[StepIn] | None = Field(default=None, max_length=5)
-
-class ActionOut(ActionIn):
-  model_config = ConfigDict(from_attributes=True)
-
-  id: uuid.UUID
-  name: str
-  created_at: datetime
 
 class RequestIn(BaseModel):
   action: str
@@ -90,11 +71,14 @@ class MeOut(BaseModel):
 class InboxDecisionIn(BaseModel):
   verdict: Verdict
   comment: str | None = Field(default=None, max_length=2000)
+  changes: dict[str, Any] | None = None
 
   @model_validator(mode="after")
-  def deny_needs_reason(self):
-    if self.verdict == Verdict.DENY and not (self.comment or "").strip():
-      raise ValueError("a deny needs a reason")
+  def check(self):
+    if self.verdict in (Verdict.DENY, Verdict.MODIFY) and not (self.comment or "").strip():
+      raise ValueError(f"a {self.verdict.value} needs a reason")
+    if (self.verdict == Verdict.MODIFY) != bool(self.changes):
+      raise ValueError("changes go with the modify verdict, and only with it")
     return self
 
 class InboxItem(BaseModel):
@@ -112,12 +96,47 @@ class RenderedScreen(BaseModel):
   blast_radius: str | None = None
   if_denied: str | None = None
 
+class Availability(BaseModel):
+  available: bool
+
+class EditableField(BaseModel):
+  field: str
+  only: Literal["decrease", "increase"] | None = None
+
+class ActionIn(BaseModel):
+  display_name: str = Field(max_length=200)
+  description: str | None = None
+  risk_level: RiskLevel
+  args_schema: dict[str, Any]
+  render_template: str
+  blast_radius: str | None = None
+  if_denied: str | None = None
+  default_timeout: timedelta = timedelta(hours=4)
+  on_timeout: OnTimeout = OnTimeout.DENY
+  steps: list[StepIn] | None = Field(default=None, max_length=5)
+  editable: list[EditableField] = Field(default_factory=list, max_length=10)
+
+class ActionOut(ActionIn):
+  model_config = ConfigDict(from_attributes=True)
+
+  id: uuid.UUID
+  name: str
+  created_at: datetime
+
+class EditableOut(BaseModel):
+  field: str
+  type: str
+  only: str | None
+  value: Any
+
 class DecisionOut(BaseModel):
   verdict: Verdict
   comment: str | None
   principal_name: str
   decided_at: datetime
   args: dict[str, Any]
+  changes: dict[str, Any] | None = None
+  modified_screen: dict[str, Any] | None = None
 
 class DecisionStatusOut(BaseModel):
   request_id: uuid.UUID
@@ -138,6 +157,4 @@ class InboxDetail(BaseModel):
   expires_at: datetime | None
   similar_approved_7d: int
   decision: DecisionOut | None
-
-class Availability(BaseModel):
-  available: bool
+  editable: list[EditableOut]

@@ -9,6 +9,7 @@ class Decision:
   comment: str
   decided_by: str
   decided_at: str
+  changes: dict[str, Any] | None = None
 
   @property
   def approved(self) -> bool:
@@ -17,6 +18,10 @@ class Decision:
   @property
   def idempotency_key(self) -> str:
     return self.request_id
+
+  @property
+  def modified(self) -> bool:
+    return self.verdict == "modify"
 
   @classmethod
   def from_view(cls, view: dict[str, Any]) -> "Decision":
@@ -27,7 +32,8 @@ class Decision:
       args=d["args"],
       comment=d["comment"],
       decided_by=d["principal_name"],
-      decided_at=d["decided_at"]
+      decided_at=d["decided_at"],
+      changes=d.get("changes")
     )
 
 @dataclass(frozen=True)

@@ -1,6 +1,12 @@
 @H = 'Authorization: Bearer dev-token'
+@HA = 'Authorization: Bearer dev-admin-token'
 @J = 'content-type: application/json'
 curl -s -X POST http://localhost:8000/v1/principals -H {{H}} -H {{J}} -d '{"name": "Ana", "roles": ["approver"]}'
+
+###
+
+curl -s -X PUT http://localhost:8000/v1/actions/refund_order -H {{HA}} \
+  -H {{J}} -d @examples/action_refund_order.json
 
 ###
 

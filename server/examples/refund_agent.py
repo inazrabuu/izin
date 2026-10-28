@@ -1,6 +1,6 @@
 """A tiny agent that needs approval before refunding.
 
-Run from server/:  PYTHONPATH=../sdk uv run python examples/refund_agent.py <run-id>
+Run from server/:  uv run python examples/refund_agent.py <run-id>
 Kill it with Ctrl-C while it waits, approve, then run it again with the same run id.
 """
 import asyncio
@@ -22,8 +22,13 @@ async def main(run_id: str) -> None:
                 "shows delivery failure on 2026-09-09"
     )
     if decision.approved:
-      print(f"[{run_id}] approved by {decision.decided_by} -> refunding "
+      amount = decision.args["amount_idr"]
+      print(f"[{run_id}] approved by {decision.decided_by} -> refunding {amount} "
             f"(downstream idempotency key: {decision.idempotency_key})")
+      if decision.modified:
+        for field, change in decision.changes.items():
+          print(f"[{run_id}] {field} changed: {change['from']:,} -> {change['to']:,}")
+        print(f"[{run_id}] reason: {decision.comment}")
     else:
       print(f"[{run_id}] denied by {decision.decided_by}: {decision.comment}")
 

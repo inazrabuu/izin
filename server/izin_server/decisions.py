@@ -24,11 +24,17 @@ from izin_server.models import (
   Verdict,
 )
 from izin_server.schemas import DecisionOut, DecisionStatusOut, InboxDecisionIn
+from izin_server.modify import prepare_modify, changes_between
 
 POLL_INTERVAL = 1.0
 
 NEXT_STATUS = {Verdict.APPROVE: RequestStatus.APPROVED, Verdict.DENY: RequestStatus.DENIED}
 PAST_TENSE = {Verdict.APPROVE: 'approved', Verdict.DENY: 'denied', Verdict.MODIFY: 'modified'}
+NEXT_STATUS = {
+  Verdict.APPROVE: RequestStatus.APPROVED,
+  Verdict.MODIFY: RequestStatus.APPROVED,
+  Verdict.DENY: RequestStatus.DENIED
+}
 
 async def authorize(session: AsyncSession, request_id: uuid.UUID, principal: Principal) -> None:
   routes = list(await session.scalars(select(Route).where(Route.request_id == request_id)))
@@ -67,7 +73,9 @@ async def write_decision(
   comment: str | None,
   from_status: RequestStatus = RequestStatus.PENDING,
   only_if: tuple = (),
-  event: dict[str, Any] | None = None
+  event: dict[str, Any] | None = None,
+  modified_args: dict[str, Any] | None = None,
+  modified_screen: dict[str, Any] | None = None
 ) -> bool:
   rendered = await session.scalar(
     update(Request)
@@ -85,7 +93,9 @@ async def write_decision(
       principal_id=principal_id,
       verdict=verdict,
       comment=comment,
-      rendered_snapshot=rendered
+      rendered_snapshot=rendered,
+      modified_args=modified_args,
+      modified_screen=modified_screen
     )
   )
   await session.execute(
@@ -101,9 +111,11 @@ async def write_decision(
 async def decide(
   session: AsyncSession, request_id: uuid.UUID, principal: Principal, body: InboxDecisionIn
 ) -> None:
-  if body.verdict not in NEXT_STATUS:
-    raise InvalidInput("the modify verdict arrives in v0.2")
   await authorize(session, request_id, principal)
+
+  modified_args = modified_screen = None
+  if body.verdict == Verdict.MODIFY:
+    modified_args, modified_screen = await prepare_modify(session, request_id, body.changes)
 
   current = await lock_current_route(session, request_id)
   if current is None:
@@ -119,7 +131,8 @@ async def decide(
 
   await write_decision(
     session, request_id,
-    principal_id=principal.id, verdict=body.verdict, comment=body.comment
+    principal_id=principal.id, verdict=body.verdict, comment=body.comment,
+    modified_args=modified_args, modified_screen=modified_screen
   )
   await session.commit()
 
@@ -153,6 +166,7 @@ async def load_view(session: AsyncSession, request_id: uuid.UUID) -> DecisionSta
         Decision.comment,
         Decision.modified_args,
         Decision.decided_at,
+        Decision.modified_screen,
         Principal.name.label("principal_name")
       )
       .outerjoin(Decision, Decision.request_id == Request.id)
@@ -170,7 +184,9 @@ async def load_view(session: AsyncSession, request_id: uuid.UUID) -> DecisionSta
       comment=row.comment,
       principal_name=row.principal_name,
       decided_at=row.decided_at,
-      args=row.modified_args if row.modified_args is not None else row.args
+      args=row.modified_args if row.modified_args is not None else row.args,
+      changes=changes_between(row.args, row.modified_args),
+      modified_screen=row.modified_screen,
     )
   return DecisionStatusOut(request_id=row.id, status=row.status, decision=decision)
 

@@ -21,6 +21,7 @@ COPY server/ ./
 RUN uv sync --locked --no-dev 
 
 COPY --from=inbox /inbox/dist ./static
+RUN chmod -R a+rX /app/static
 
 ENV PATH="/app/.venv/bin:$PATH" \
     IZIN_STATIC_DIR=/app/static

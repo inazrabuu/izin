@@ -110,7 +110,10 @@ class Action(Base):
   default_timeout: Mapped[timedelta] = mapped_column(server_default=text("interval '4 hours'"))
   on_timeout: Mapped[OnTimeout] = mapped_column(str_enum(OnTimeout), server_default="deny")
   created_at: Mapped[datetime] = created_at()
-  steps: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB)
+  steps: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
+  editable: Mapped[list[dict[str, Any]]] = mapped_column(
+    JSONB, default=list, server_default=text("'[]'::jsonb")
+  )
 
 class Principal(Base):
   __tablename__ = "principals"
@@ -154,6 +157,7 @@ class Request(Base):
   expires_at: Mapped[datetime | None]
   created_at: Mapped[datetime] = created_at()
   plan: Mapped[dict[str, Any]]
+  screen_spec: Mapped[dict[str, Any]]
 
 class Route(Base):
   __tablename__ = "routes"
@@ -182,6 +186,11 @@ class Decision(Base):
       "verdict <> 'deny' OR length(trim(coalesce(comment, ''))) > 0",
       name="deny_has_reason"
     ),
+    CheckConstraint("(verdict = 'modify') = (modified_screen IS NOT NULL)", name="modify_has_screen"),
+    CheckConstraint(
+      "verdict <> 'modify' OR (comment IS NOT NULL AND btrim(comment) <> '')",
+      name="modify_has_reason",
+    ),
   )
 
   id: Mapped[uuid.UUID] = uuid_pk()
@@ -192,6 +201,8 @@ class Decision(Base):
   comment: Mapped[str | None] = mapped_column(Text)
   decided_at: Mapped[datetime] = created_at()
   rendered_snapshot: Mapped[dict[str, Any]]
+  modified_args: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+  modified_screen: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 class RequestEvent(Base):
   __tablename__ = "request_events"

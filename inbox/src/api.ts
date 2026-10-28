@@ -17,6 +17,8 @@ export interface Decision {
   principal_name: string;
   decided_at: string;
   args: Record<string, unknown>;
+  changes: Record<string, { from: unknown; to: unknown }> | null;
+  modified_screen: { headline: string } | null;
 }
 
 export interface InboxDetail {
@@ -37,6 +39,7 @@ export interface InboxDetail {
   expires_at: string | null;
   similar_approved_7d: number;
   decision: Decision | null;
+  editable: Editable[];
 }
 
 export interface Me {
@@ -44,6 +47,13 @@ export interface Me {
   name: string;
   roles: string[];
   available: boolean;
+}
+
+export interface Editable {
+  field: string;
+  type: "number" | "integer" | "string";
+  only: "decrease" | "increase" | null;
+  value: unknown;
 }
 
 const TOKEN_KEY = "izin.token";
@@ -95,10 +105,19 @@ export const api = {
   me: () => call<Me>("/me"),
   list: () => call<InboxItem[]>("/requests"),
   get: (id: string) => call<InboxDetail>(`/requests/${id}`),
-  decide: (id: string, verdict: "approve" | "deny", comment?: string) =>
+  decide: (
+    id: string,
+    verdict: "approve" | "deny" | "modify",
+    comment?: string,
+    changes?: Record<string, unknown>,
+  ) =>
     call<InboxDetail>(`/requests/${id}/decision`, {
       method: "POST",
-      body: JSON.stringify({ verdict, comment: comment?.trim() || null }),
+      body: JSON.stringify({
+        verdict,
+        comment: comment?.trim() || null,
+        changes: changes ?? null,
+      }),
     }),
   setAvailability: (available: boolean) =>
     call<{ available: boolean }>("/me/availability", {

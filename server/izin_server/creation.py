@@ -12,7 +12,7 @@ from izin_server.models import Action, Outbox, Request, RequestEvent
 from izin_server.rendering import RenderError, render_screen
 from izin_server.routing import build_plan, close_unroutable, route_to, total_wait
 from izin_server.schemas import RequestIn
-
+from izin_server.modify import validate_args, render_screen, screen_spec
 
 async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Request, bool]:
   action = await session.scalar(select(Action).where(Action.name == body.action))
@@ -24,7 +24,8 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
     _ensure_same_request(existing, action, body)
     return existing, False
 
-  _validate_args(action.args_schema, body.args)
+  validate_args(action.args_schema, body.args)
+  spec = screen_spec(action)
   try:
     rendered = render_screen(
       headline=action.render_template,
@@ -49,6 +50,7 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
       context=body.context,
       rendered=rendered,
       plan=plan,
+      screen_spec=spec,
       expires_at=func.now() + total_wait(plan)
     )
     .on_conflict_do_nothing(index_elements=[Request.idempotency_key])
@@ -95,12 +97,6 @@ def _ensure_same_request(existing: Request, action: Action, body: RequestIn) -> 
     raise IdempotencyConflict(
       "idempotency_key was already used for a different request (action, agent_run_id or args differ)"
     )
-
-def _validate_args(schema: dict[str, Any], args: dict[str, Any]) -> None:
-  error = best_match(Draft202012Validator(schema).iter_errors(args))
-  if error is not None:
-    where = "/".join(map(str, error.path)) or "(root)"
-    raise InvalidInput(f"args invalid at {where} : {error.message}")
 
 def _outbox_payload(request_id: uuid.UUID, action: Action, rendered: dict) -> dict:
   return {
