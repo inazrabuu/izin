@@ -11,7 +11,8 @@ from izin_server.creation import create_request
 from izin_server.db import get_session
 from izin_server.decisions import consume, decide, wait_for_decision
 from izin_server.inbox import list_inbox, load_detail
-from izin_server.models import Principal, OutboxStatus
+from izin_server.models import OutboxStatus, Principal
+from izin_server.notify import list_outbox, retry_delivery
 from izin_server.principals import create_principal, rotate_token, set_availability
 from izin_server.schemas import (
   ActionIn,
@@ -22,14 +23,13 @@ from izin_server.schemas import (
   InboxDetail,
   InboxItem,
   MeOut,
+  OutboxOut,
   PrincipalCreated,
   PrincipalIn,
   PrincipalOut,
   RequestIn,
   RequestOut,
-  OutboxOut
 )
-from izin_server.notify import list_outbox, retry_delivery
 
 # router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 admin_router = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])
