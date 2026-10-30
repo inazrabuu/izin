@@ -17,4 +17,6 @@ class Settings(BaseSettings):
   static_dir: str | None = None
   public_url: str = "http://localhost:8000"
 
+  human_channels: list[str] = []
+
 settings = Settings()

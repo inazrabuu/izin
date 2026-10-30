@@ -23,7 +23,9 @@ from izin_server.models import (
   Verdict,
 )
 from izin_server.modify import changes_between, prepare_modify
+from izin_server.notify import emit
 from izin_server.schemas import DecisionOut, DecisionStatusOut, InboxDecisionIn
+from izin_server.system import SYSTEM_PRINCIPAL_IDS
 
 POLL_INTERVAL = 1.0
 
@@ -103,6 +105,10 @@ async def write_decision(
       type="decided",
       payload={"verdict": verdict.value, "principal_id": str(principal_id), **(event or {})}
     )
+  )
+  await emit(
+    session, request_id, "request.decided",
+    verdict=verdict.value, automatic=principal_id in SYSTEM_PRINCIPAL_IDS
   )
 
   return True

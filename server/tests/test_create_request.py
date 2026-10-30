@@ -12,6 +12,7 @@ from helpers import (
   count,
   request_body,
 )
+from izin_server import creation
 from izin_server.models import Outbox, Request, RequestEvent, Route
 
 # ---------- creation ----------
@@ -107,7 +108,7 @@ async def test_t1_is_atomic(client, action, monkeypatch):
   def explode(*args, **kwargs):
     raise RuntimeError("outbox exploded")
 
-  monkeypatch.setattr("izin_server.creation._outbox_payload", explode)
+  monkeypatch.setattr(creation, "emit", explode)
   body = request_body(action)
 
   with pytest.raises(RuntimeError):

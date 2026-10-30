@@ -233,3 +233,7 @@ class Outbox(Base):
   next_attempt_at: Mapped[datetime] = created_at()
   last_error: Mapped[str | None] = mapped_column(Text)
   created_at: Mapped[datetime] = created_at()
+  event: Mapped[str] = mapped_column(String(64))
+  principal_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
+  dedupe_key: Mapped[str] = mapped_column(Text, unique=True)
+  give_up_after: Mapped[int] = mapped_column(server_default=text("8"))

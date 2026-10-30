@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from izin_server.config import settings
 from izin_server.decisions import write_decision
 from izin_server.models import Action, Principal, RequestEvent, Route, Verdict
+from izin_server.notify import assign
 from izin_server.system import ROUTING_PRINCIPAL_ID
 
 
@@ -22,21 +23,6 @@ def build_plan(action: Action) -> dict[str, Any]:
 def total_wait(plan: dict[str, Any]) -> timedelta:
   return timedelta(seconds=sum(step["after"] for step in plan["steps"]))
 
-# async def activate_step(
-#   session: AsyncSession, request_id: uuid.UUID, plan: dict[str, Any], index: str
-# ) -> int:
-#   step = plan["steps"][index]
-#   await session.execute(
-#     insert(Route).values(
-#       request_id=request_id,
-#       step_index=index,
-#       role=step["role"],
-#       principal_ids=[uuid.UUID(p) for p in step["principal_ids"]],
-#       due_at=func.now() + timedelta(seconds=step["after"])
-#     )
-#   )
-
-#   return index
 async def _candidate(session: AsyncSession, step: dict[str, Any]) -> list[Principal]:
   targets = []
   if step["role"]:
@@ -63,7 +49,11 @@ async def route_to(
           due_at=func.now() + timedelta(seconds=step["after"])
         )
       )
+      
+      await assign(session, request_id, index, people)
+
       return index
+    
     await session.execute(
       insert(RequestEvent).values(
         request_id=request_id,

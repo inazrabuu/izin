@@ -11,7 +11,7 @@ from izin_server.creation import create_request
 from izin_server.db import get_session
 from izin_server.decisions import consume, decide, wait_for_decision
 from izin_server.inbox import list_inbox, load_detail
-from izin_server.models import Principal
+from izin_server.models import Principal, OutboxStatus
 from izin_server.principals import create_principal, rotate_token, set_availability
 from izin_server.schemas import (
   ActionIn,
@@ -27,7 +27,9 @@ from izin_server.schemas import (
   PrincipalOut,
   RequestIn,
   RequestOut,
+  OutboxOut
 )
+from izin_server.notify import list_outbox, retry_delivery
 
 # router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 admin_router = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])
@@ -59,6 +61,18 @@ async def put_principal_availablity(
   return Availability(
     available=await set_availability(session, principal_id, body.available, by="admin")
   )
+
+@admin_router.get("/outbox", response_model=list[OutboxOut])
+async def get_outbox(
+  session: Session,
+  status: OutboxStatus = OutboxStatus.FAILED,
+  limit: int = Query(default = 50, ge=1, le=500)
+):
+  return await list_outbox(session, status, limit)
+
+@admin_router.post("/outbox/{outbox_id}/retry", response_model=OutboxOut)
+async def post_outbox_retry(outbox_id: int, session: Session):
+  return await retry_delivery(session, outbox_id)
 
 @agent_router.post("/requests", response_model=RequestOut, status_code=201)
 async def post_request(body: RequestIn, response: Response, session: Session):

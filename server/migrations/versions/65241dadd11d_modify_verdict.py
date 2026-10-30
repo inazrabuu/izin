@@ -44,7 +44,7 @@ def upgrade() -> None:
   
   op.execute("""
     ALTER TABLE decisions ADD CONSTRAINT ck_decisions_modify_has_screen
-    CHECK ((verdict = 'modify') = (modified_screen IS NOT NULL))
+    CHECK ((verdict = 'modify') = (modified_screen IS NOT NULL)) NOT VALID
   """)
   op.execute("""
     ALTER TABLE decisions ADD CONSTRAINT ck_decisions_modify_has_reason

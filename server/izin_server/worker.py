@@ -16,11 +16,11 @@ from izin_server.db import SessionLocal, engine
 from izin_server.models import Outbox, OutboxStatus, RequestEvent
 from izin_server.timeouts import sweep_once
 from izin_server.webhooks import encode_body, sign
+from izin_server.notify import MAX_ATTEMPTS
 
 log = logging.getLogger("izin.worker")
 
 LEASE_SECONDS = 60
-MAX_ATTEMPTS = 8
 BASE_BACKOFF = 5.0
 MAX_BACKOFF = 3600.0
 IDLE_SLEEP = 1.0
@@ -32,6 +32,7 @@ class Claimed:
   channel: str
   payload: dict[str, Any]
   attempts: int
+  give_up_after: int = MAX_ATTEMPTS
 
 @dataclass(frozen=True)
 class Outcome:
@@ -56,7 +57,8 @@ async def claim(session: AsyncSession, batch_size: int) -> list[Claimed]:
         next_attempt_at=func.now() + timedelta(seconds=LEASE_SECONDS),
       )
       .returning(
-        Outbox.id, Outbox.request_id, Outbox.channel, Outbox.payload, Outbox.attempts
+        Outbox.id, Outbox.request_id, Outbox.channel, Outbox.payload, Outbox.attempts,
+        Outbox.give_up_after
       )
       .execution_options(synchronize_session=False)
     )
@@ -92,7 +94,7 @@ async def record_outcome(item: Claimed, outcome: Outcome) -> None:
   if outcome.ok:
     values: dict[str, Any] = {"status": OutboxStatus.SENT, "last_error": None}
     event = "notified"
-  elif outcome.permanent or item.attempts >= MAX_ATTEMPTS:
+  elif outcome.permanent or item.attempts >= item.give_up_after:
     values = {"status": OutboxStatus.FAILED, "last_error": outcome.error}
     event = "notify_failed"
   else:

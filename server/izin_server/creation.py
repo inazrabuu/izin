@@ -1,12 +1,12 @@
-import uuid
 
 from sqlalchemy import func, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.errors import IdempotencyConflict, InvalidInput
-from izin_server.models import Action, Outbox, Request, RequestEvent
+from izin_server.models import Action, Request, RequestEvent
 from izin_server.modify import render_screen, screen_spec, validate_args
+from izin_server.notify import emit
 from izin_server.rendering import RenderError
 from izin_server.routing import build_plan, close_unroutable, route_to, total_wait
 from izin_server.schemas import RequestIn
@@ -67,18 +67,14 @@ async def create_request(session: AsyncSession, body: RequestIn) -> tuple[Reques
       payload={"agent_run_id": body.agent_run_id, "agent_name": body.agent_name},
     )
   )
+
+  await emit(session, new_id, "request.created")
+
   if await route_to(session, new_id, plan, 0) is None:
     await close_unroutable(session, new_id)
-    
-  await session.execute(
-    insert(Outbox).values(
-      request_id=new_id,
-      channel="webhook",
-      payload=_outbox_payload(new_id, action, rendered),
-    )
-  )
-  await session.commit()
 
+  await session.commit()
+    
   return await session.get(Request, new_id), True
 
 async def _find(session: AsyncSession, key: str) -> Request:
@@ -95,12 +91,3 @@ def _ensure_same_request(existing: Request, action: Action, body: RequestIn) -> 
     raise IdempotencyConflict(
       "idempotency_key was already used for a different request (action, agent_run_id or args differ)"
     )
-
-def _outbox_payload(request_id: uuid.UUID, action: Action, rendered: dict) -> dict:
-  return {
-    "event": "request.created",
-    "request_id": str(request_id),
-    "action": action.name,
-    "risk_level": action.risk_level,
-    "headline": rendered["headline"]
-  }

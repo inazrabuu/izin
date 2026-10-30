@@ -4,7 +4,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from izin_server.models import OnTimeout, RequestStatus, RiskLevel, Verdict
+from izin_server.models import (
+  OnTimeout,
+  OutboxStatus,
+  RequestStatus,
+  RiskLevel,
+  Verdict,
+)
 
 
 class StepIn(BaseModel):
@@ -158,3 +164,18 @@ class InboxDetail(BaseModel):
   similar_approved_7d: int
   decision: DecisionOut | None
   editable: list[EditableOut]
+
+class OutboxOut(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
+
+  id: int
+  request_id: uuid.UUID
+  event: str
+  channel: str
+  principal_id: uuid.UUID | None
+  status: OutboxStatus
+  attempts: int
+  give_up_after: int
+  last_error: str | None
+  next_attempt_at: datetime
+  created_at: datetime

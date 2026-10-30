@@ -46,7 +46,7 @@ async def test_delivers_a_signed_webhook(pending_request):
   assert call.url == URL
   assert verify(SECRET, call.headers, call.content)
   body = json.loads(call.content)
-  assert body["headline"] == pending_request["rendered"]["headline"]
+  assert "headline" not in body
   assert "args" not in body
 
   row = await outbox_row(pending_request["id"])
