@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { api, ApiError, type InboxDetail } from "../api";
+import { api, ApiError, type DetailClient, type InboxDetail } from "../api";
 import { formatValue, timeAgo, truncateWords } from "../format";
 
 const WHY_WORD_LIMIT = 40;
@@ -7,9 +7,11 @@ const WHY_WORD_LIMIT = 40;
 export function RequestDetail({
   id,
   onSignOut,
+  client = api,
 }: {
   id: string;
   onSignOut: () => void;
+  client?: DetailClient;
 }) {
   const [req, setReq] = useState<InboxDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function RequestDetail({
 
   const load = useCallback(async () => {
     try {
-      setReq(await api.get(id));
+      setReq(await client.get(id));
     } catch (e) {
       fail(e);
     }
@@ -48,7 +50,7 @@ export function RequestDetail({
     setError(null);
     try {
       setReq(
-        await api.decide(
+        await client.decide(
           id,
           verdict,
           verdict === "approve" ? undefined : reason,
@@ -197,6 +199,11 @@ export function RequestDetail({
           {req.decision.comment && (
             <span className="meta"> — “{req.decision.comment}”</span>
           )}
+        </p>
+      ) : req.link_can_decide === false ? (
+        <p className="meta">
+          This is a high-risk request. <a href="#/">Sign in to the inbox</a> to
+          decide.
         </p>
       ) : changing ? (
         <div className="actions stacked">

@@ -40,6 +40,7 @@ export interface InboxDetail {
   similar_approved_7d: number;
   decision: Decision | null;
   editable: Editable[];
+  link_can_decide?: boolean | null;
 }
 
 export interface Me {
@@ -75,13 +76,16 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = tokenStore.get();
-  const response = await fetch(`/v1/inbox${path}`, {
+async function send<T>(
+  url: string,
+  auth: Record<string, string>,
+  init: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...auth,
       ...init.headers,
     },
   });
@@ -99,6 +103,33 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = tokenStore.get();
+  return send<T>(
+    `/v1/inbox${path}`,
+    token ? { Authorization: `Bearer ${token}` } : {},
+    init,
+  );
+}
+
+export type DetailClient = Pick<typeof api, "get" | "decide">;
+
+export function linkClient(token: string): DetailClient {
+  const auth = { "Izin-Link": token };
+  return {
+    get: () => send<InboxDetail>("/v1/link", auth),
+    decide: (_id, verdict, comment, changes) =>
+      send<InboxDetail>("/v1/link/decision", auth, {
+        method: "POST",
+        body: JSON.stringify({
+          verdict,
+          comment: comment?.trim() || null,
+          changes: changes ?? null,
+        }),
+      }),
+  };
 }
 
 export const api = {

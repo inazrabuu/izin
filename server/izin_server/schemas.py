@@ -164,6 +164,7 @@ class InboxDetail(BaseModel):
   similar_approved_7d: int
   decision: DecisionOut | None
   editable: list[EditableOut]
+  link_can_decide: bool | None = None
 
 class OutboxOut(BaseModel):
   model_config = ConfigDict(from_attributes=True)

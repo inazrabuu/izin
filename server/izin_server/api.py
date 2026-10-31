@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query, Response
+from fastapi import APIRouter, Depends, Header, Path, Query, Response
 from fastapi import Request as HTTPRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from izin_server.creation import create_request
 from izin_server.db import get_session
 from izin_server.decisions import consume, decide, wait_for_decision
 from izin_server.inbox import list_inbox, load_detail
+from izin_server.links import decide_by_link, link_view, open_link
 from izin_server.models import OutboxStatus, Principal
 from izin_server.notify import list_outbox, retry_delivery
 from izin_server.principals import create_principal, rotate_token, set_availability
@@ -33,8 +34,6 @@ from izin_server.schemas import (
 
 # router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 admin_router = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])
-agent_router = APIRouter(prefix="/v1", dependencies=[Depends(require_agent)])
-inbox_router = APIRouter(prefix="/v1/inbox")
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 Me = Annotated[Principal, Depends(current_principal)]
@@ -74,6 +73,8 @@ async def get_outbox(
 async def post_outbox_retry(outbox_id: int, session: Session):
   return await retry_delivery(session, outbox_id)
 
+agent_router = APIRouter(prefix="/v1", dependencies=[Depends(require_agent)])
+
 @agent_router.post("/requests", response_model=RequestOut, status_code=201)
 async def post_request(body: RequestIn, response: Response, session: Session):
   request, created = await create_request(session, body)
@@ -90,6 +91,8 @@ async def get_decision(
 @agent_router.post("/requests/{request_id}/consume", response_model=DecisionStatusOut)
 async def post_consume(request_id: uuid.UUID, session: Session):
   return await consume(session, request_id)
+
+inbox_router = APIRouter(prefix="/v1/inbox")
 
 @inbox_router.get("/me", response_model=MeOut)
 async def get_me(me: Me):
@@ -115,3 +118,22 @@ async def put_my_availability(body: Availability, me: Me, session: Session):
   return Availability(
     available=await set_availability(session, me.id, body.available, by="self")
   )
+
+link_router = APIRouter(prefix="/v1/link")
+
+@link_router.get("", response_model=InboxDetail)
+async def get_link(
+  session: Session, izin_link: Annotated[str | None, Header(alias="Izin-Link")] = None,
+):
+  claims, principal = await open_link(session, izin_link)
+  return await link_view(session, claims, principal)
+
+@link_router.post("/decision", response_model=InboxDetail)
+async def post_link_decision(
+  body: InboxDecisionIn,
+  session: Session,
+  izin_link: Annotated[str | None, Header(alias="Izin-Link")] = None
+):
+  claims, principal = await open_link(session, izin_link)
+  await decide_by_link(session, claims, principal, body)
+  return await link_view(session, claims, principal)

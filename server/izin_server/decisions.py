@@ -114,7 +114,8 @@ async def write_decision(
   return True
 
 async def decide(
-  session: AsyncSession, request_id: uuid.UUID, principal: Principal, body: InboxDecisionIn
+  session: AsyncSession, request_id: uuid.UUID, principal: Principal, body: InboxDecisionIn,
+  *, step: int | None = None, via: str = "inbox"
 ) -> None:
   await authorize(session, request_id, principal)
 
@@ -127,6 +128,9 @@ async def decide(
     await session.rollback()
     raise _already_decide(await load_view(session, request_id))
   route, is_open = current
+  if step is not None and route.step_index != step:
+    await session.rollback()
+    raise AlreadyDecided("This link is for an earlier step; the request has moved on.")
   if not may_decide(principal, route):
     await session.rollback()
     raise AlreadyDecided("This request was escalated and is no longer waiting on you.")
@@ -137,7 +141,8 @@ async def decide(
   await write_decision(
     session, request_id,
     principal_id=principal.id, verdict=body.verdict, comment=body.comment,
-    modified_args=modified_args, modified_screen=modified_screen
+    modified_args=modified_args, modified_screen=modified_screen,
+    event={"via": via}
   )
   await session.commit()
 

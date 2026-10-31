@@ -7,12 +7,14 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+import aiosmtplib
 import httpx
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.config import settings
 from izin_server.db import SessionLocal, engine
+from izin_server.mail import Permanent, Stale, send_assignment
 from izin_server.models import Outbox, OutboxStatus, RequestEvent
 from izin_server.notify import MAX_ATTEMPTS
 from izin_server.timeouts import sweep_once
@@ -33,12 +35,14 @@ class Claimed:
   payload: dict[str, Any]
   attempts: int
   give_up_after: int = MAX_ATTEMPTS
+  principal_id: uuid.UUID | None = None
 
 @dataclass(frozen=True)
 class Outcome:
   ok: bool
   permanent: bool = False
   error: str | None = None
+  skipped: bool = False
 
 async def claim(session: AsyncSession, batch_size: int) -> list[Claimed]:
   due = (
@@ -58,7 +62,7 @@ async def claim(session: AsyncSession, batch_size: int) -> list[Claimed]:
       )
       .returning(
         Outbox.id, Outbox.request_id, Outbox.channel, Outbox.payload, Outbox.attempts,
-        Outbox.give_up_after
+        Outbox.give_up_after, Outbox.principal_id
       )
       .execution_options(synchronize_session=False)
     )
@@ -66,9 +70,23 @@ async def claim(session: AsyncSession, batch_size: int) -> list[Claimed]:
 
   return [Claimed(**row._mapping) for row in rows]
 
+async def deliver_email(item: Claimed) -> Outcome:
+  try:
+    await send_assignment(item.request_id, item.principal_id, item.payload)
+  except Stale as e:
+    return Outcome(ok=True, skipped=True, error=str(e))
+  except Permanent as e:
+    return Outcome(ok=False, permanent=True, error=str(e))
+  except (aiosmtplib.SMTPException, OSError) as e:
+    return Outcome(ok=False, error=f"{type(e).__name__}: {e}")
+  return Outcome(ok=True)
+
 async def deliver(
   http: httpx.AsyncClient, item: Claimed, url: str | None, secret: str
 ) -> Outcome:
+  if item.channel == "email":
+    return await deliver_email(item)
+  
   if item.channel != "webhook":
     return Outcome(ok=False, permanent=True, error=f"no adapter for channel {item.channel!r}")
   if not url:
@@ -92,8 +110,8 @@ def backoff_seconds(attempts: int) -> float:
 
 async def record_outcome(item: Claimed, outcome: Outcome) -> None:
   if outcome.ok:
-    values: dict[str, Any] = {"status": OutboxStatus.SENT, "last_error": None}
-    event = "notified"
+    values: dict[str, Any] = {"status": OutboxStatus.SENT, "last_error": outcome.error}
+    event = "notify_skipped" if outcome.skipped else "notified"
   elif outcome.permanent or item.attempts >= item.give_up_after:
     values = {"status": OutboxStatus.FAILED, "last_error": outcome.error}
     event = "notify_failed"
@@ -150,7 +168,12 @@ async def run_once(
     await session.commit()
 
   async def process(item: Claimed) -> None:
-    await record_outcome(item, await deliver(http, item, url, secret))
+    try:
+      outcome = await deliver(http, item, url, secret)
+    except Exception as e:
+      log.exception("outbox %s: unexpected error in the %s adapter", item.id, item.channel)
+      outcome = Outcome(ok=False, error=f"{type(e).__name__}: {e}")
+    await record_outcome(item, outcome)
 
   await asyncio.gather(*(process(item) for item in claimed))
   return len(claimed)

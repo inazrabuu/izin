@@ -19,4 +19,12 @@ class Settings(BaseSettings):
 
   human_channels: list[str] = []
 
+  smtp_host: str | None = None
+  smtp_port: int = 507
+  smtp_username: str | None = None
+  smtp_password: str | None = None
+  smtp_starttls: bool = True
+  smtp_from: str = "izin <izin@localhost>"
+  link_secret: str = "dev-link_secret"
+
 settings = Settings()

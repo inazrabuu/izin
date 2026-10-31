@@ -135,3 +135,14 @@ async def test_stale_worker_cannot_overwrite_the_outcome(pending_request):
   row = await outbox_row(pending_request["id"])
   assert row.status == OutboxStatus.PENDING
   assert row.attempts == second.attempts == first.attempts + 1
+
+async def test_adapter_bug_is_recorded_not_looped(pending_request, monkeypatch):
+  async def broken(*args, **kwargs):
+    raise KeyError("bug")
+
+  monkeypatch.setattr(worker, "deliver", broken)
+  async with Receiver().client() as http:
+    await drain(http)
+
+  row = await outbox_row(pending_request["id"])
+  assert (row.status, row.attempts, row.last_error) == (OutboxStatus.PENDING, 1, "KeyError: 'bug'")

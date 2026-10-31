@@ -30,6 +30,11 @@ x-app: &app
     IZIN_ADMIN_TOKEN: ${IZIN_ADMIN_TOKEN:-dev-admin-token}
     IZIN_WEBHOOK_URL: ${IZIN_WEBHOOK_URL:-http://receiver:9000/hook}
     IZIN_WEBHOOK_SECRET: ${IZIN_WEBHOOK_SECRET:-dev-webhook-secret}
+    IZIN_SMTP_HOST: ${IZIN_SMTP_HOST:-mail}
+    IZIN_SMTP_PORT: ${IZIN_SMTP_PORT:-1025}
+    IZIN_SMTP_STARTTLS: ${IZIN_SMTP_STARTTLS:-false}
+    IZIN_HUMAN_CHANNELS: '${IZIN_HUMAN_CHANNELS:-["email"]}'
+    IZIN_LINK_SECRET: ${IZIN_LINK_SECRET:-dev-link-secret}
     IZIN_PUBLIC_URL: ${IZIN_PUBLIC_URL:-http://localhost:8000}
   depends_on:
     migrate:
@@ -94,6 +99,11 @@ services:
         "9000",
       ]
     restart: unless-stopped
+
+  mail:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025"
 
 volumes:
   pgdata:
