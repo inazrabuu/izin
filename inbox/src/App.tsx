@@ -28,8 +28,6 @@ export default function App() {
     setToken(null);
   }, []);
 
-  if (!token) return <SignIn onSignedIn={setToken} />;
-
   const match = /^#\/requests\/([0-9a-f-]{36})$/.exec(hash);
 
   if (client) {
