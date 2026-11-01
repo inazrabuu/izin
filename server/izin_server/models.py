@@ -141,6 +141,7 @@ class Request(Base):
   __tablename__ = "requests"
   __table_args__ = (
     Index("ix_requests_status_expires_at", "status", "expires_at"),
+    Index("ix_requests_created_at", "created_at"),
     enum_check("status", RequestStatus)
   )
 
@@ -250,4 +251,14 @@ class SlackMessage(Base):
   step: Mapped[int]
   channel: Mapped[str] = mapped_column(String(32))
   ts: Mapped[str] = mapped_column(String(32))
+  created_at: Mapped[datetime] = created_at()
+
+class AuditExport(Base):
+  __tablename__ = "audit_exports"
+
+  id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+  format: Mapped[str] = mapped_column(String(8))
+  filters: Mapped[dict[str, Any]]
+  row_count: Mapped[int]
+  sha256: Mapped[str] = mapped_column(String(64))
   created_at: Mapped[datetime] = created_at()

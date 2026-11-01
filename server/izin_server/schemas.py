@@ -191,3 +191,13 @@ class SlackLink(BaseModel):
 
 class WhatsAppOptIn(BaseModel):
   phone: str = Field(pattern=E164)
+
+class AuditExportOut(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
+
+  id: uuid.UUID
+  format: str
+  filters: dict[str, Any]
+  row_count: int
+  sha256: str
+  created_at: datetime

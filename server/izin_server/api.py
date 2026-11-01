@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import uuid
 from typing import Annotated
@@ -6,10 +7,11 @@ from urllib.parse import parse_qs
 import httpx
 from fastapi import APIRouter, Depends, Header, Path, Query, Response
 from fastapi import Request as HTTPRequest
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.actions import upsert_action
+from izin_server.audit import ExportFilter, Format, Verdict, get_export, stream_export
 from izin_server.auth import current_principal, require_admin, require_agent
 from izin_server.creation import create_request
 from izin_server.db import get_session
@@ -30,6 +32,7 @@ from izin_server.principals import (
 from izin_server.schemas import (
   ActionIn,
   ActionOut,
+  AuditExportOut,
   Availability,
   DecisionStatusOut,
   InboxDecisionIn,
@@ -91,6 +94,31 @@ async def post_outbox_retry(outbox_id: int, session: Session):
 @admin_router.put("/principals/{principal_id}/slack", response_model=PrincipalOut)
 async def put_principal_slack(principal_id: uuid.UUID, body: SlackLink, session: Session):
   return await set_slack_user(session, principal_id, body.slack_user_id)
+
+@admin_router.get("/audit/requests")
+async def get_audit_requests(
+  start: datetime,
+  end: datetime,
+  action: Annotated[list[str] | None, Query()] = None,
+  agent_name: str | None = None,
+  verdict: Verdict | None = None,
+  arg: Annotated[list[str] | None, Query()] = None,
+  fmt: Annotated[Format, Query(alias="format")] = "csv",
+) -> StreamingResponse:
+  f = ExportFilter.build(start, end, action, agent_name, verdict, arg)  # 422 now, before any byte
+  export_id = uuid.uuid4()
+  return StreamingResponse(
+    stream_export(f, export_id, fmt),
+    media_type="text/csv; charset=utf-8" if fmt == "csv" else "application/x-ndjson",
+    headers={
+      "X-Izin-Export-Id": str(export_id),
+      "Content-Disposition": f'attachment; filename="izin-audit-{export_id}.{fmt}"',
+    },
+  )
+
+@admin_router.get("/audit/exports/{export_id}", response_model=AuditExportOut)
+async def get_audit_export(export_id: uuid.UUID, session: Session):
+  return await get_export(session, export_id)
 
 slack_router = APIRouter(prefix="/v1/slack")
 
