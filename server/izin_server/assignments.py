@@ -34,6 +34,8 @@ class Assignment:
   email: str | None
   slack_user_id: str | None
   due_at: datetime
+  phone: str | None
+  whatsapp_opted_in: bool
 
 async def load_assignment(request_id: uuid.UUID, principal_id: uuid.UUID, step: int) -> Assignment:
   async with SessionLocal() as s:
@@ -43,6 +45,7 @@ async def load_assignment(request_id: uuid.UUID, principal_id: uuid.UUID, step: 
           Request.status, Request.rendered, Request.rationale,
           Action.display_name, Action.risk_level,
           Principal.name, Principal.email, Principal.slack_user_id, Route.due_at,
+          Principal.phone, Principal.whatsapp_opted_in_at
         )
         .join(Action, Action.id == Request.action_id)
         .join(Route, (Route.request_id == Request.id) & (Route.step_index == step))
@@ -63,4 +66,5 @@ async def load_assignment(request_id: uuid.UUID, principal_id: uuid.UUID, step: 
     headline=row.rendered["headline"], rationale=row.rationale,
     action=row.display_name, risk_level=row.risk_level,
     name=row.name, email=row.email, slack_user_id=row.slack_user_id, due_at=row.due_at,
+    phone=row.phone, whatsapp_opted_in=row.whatsapp_opted_in_at is not None,
   )

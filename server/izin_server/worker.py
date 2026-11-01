@@ -21,6 +21,7 @@ from izin_server.notify import MAX_ATTEMPTS
 from izin_server.slack import SlackRetry, post_assignment, update_message
 from izin_server.timeouts import sweep_once
 from izin_server.webhooks import encode_body, sign
+from izin_server.whatsapp import WhatsAppRetry, send_whatsapp
 
 log = logging.getLogger("izin.worker")
 
@@ -86,6 +87,9 @@ async def deliver_email(item: Claimed) -> Outcome:
 async def deliver(
   http: httpx.AsyncClient, item: Claimed, url: str | None, secret: str
 ) -> Outcome:
+  if item.channel == "whatsapp":
+    return await deliver_whatsapp(http, item)
+  
   if item.channel == "slack":
     return await deliver_slack(http, item)
   
@@ -224,6 +228,17 @@ async def deliver_slack(http: httpx.AsyncClient, item: Claimed) -> Outcome:
   except Permanent as e:
     return Outcome(ok=False, permanent=True, error=str(e))
   except (SlackRetry, httpx.HTTPError) as e:
+    return Outcome(ok=False, error=f"{type(e).__name__}: {e}")
+  return Outcome(ok=True)
+
+async def deliver_whatsapp(http: httpx.AsyncClient, item: Claimed) -> Outcome:
+  try:
+    await send_whatsapp(http, item.request_id, item.principal_id, item.payload)
+  except Stale as e:
+    return Outcome(ok=True, skipped=True, error=str(e))
+  except Permanent as e:
+    return Outcome(ok=False, permanent=True, error=str(e))
+  except (WhatsAppRetry, httpx.HTTPError) as e:
     return Outcome(ok=False, error=f"{type(e).__name__}: {e}")
   return Outcome(ok=True)
 

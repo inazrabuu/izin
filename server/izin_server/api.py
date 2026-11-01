@@ -21,6 +21,8 @@ from izin_server.models import OutboxStatus, Principal
 from izin_server.notify import list_outbox, retry_delivery
 from izin_server.principals import (
   create_principal,
+  opt_in_whatsapp,
+  opt_out_whatsapp,
   rotate_token,
   set_availability,
   set_slack_user,
@@ -41,6 +43,7 @@ from izin_server.schemas import (
   RequestIn,
   RequestOut,
   SlackLink,
+  WhatsAppOptIn,
 )
 from izin_server.slack import handle_interaction, verify_slack
 
@@ -146,6 +149,14 @@ async def put_my_availability(body: Availability, me: Me, session: Session):
   return Availability(
     available=await set_availability(session, me.id, body.available, by="self")
   )
+
+@inbox_router.put("/me/whatsapp", response_model=MeOut)
+async def put_my_whatsapp(body: WhatsAppOptIn, me: Me, session: Session):
+  return await opt_in_whatsapp(session, me, body.phone)
+
+@inbox_router.delete("/me/whatsapp", response_model=MeOut)
+async def delete_my_whatsapp(me: Me, session: Session):
+  return await opt_out_whatsapp(session, me)
 
 link_router = APIRouter(prefix="/v1/link")
 

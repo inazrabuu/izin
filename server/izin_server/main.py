@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Response, status
+from fastapi import Path as PathParam
 from fastapi import Request as HTTPRequest
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,8 +22,10 @@ from izin_server.api import (
 from izin_server.config import settings
 from izin_server.db import engine, get_session
 from izin_server.errors import IzinError
+from izin_server.links import RedactLinkTokens
 
 log = logging.getLogger("izin")
+logging.getLogger("uvicorn.access").addFilter(RedactLinkTokens())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,6 +65,14 @@ async def handle_izin_error(_: HTTPRequest, exc: IzinError) -> JSONResponse:
       }
     }
   )  
+
+@app.get("/l/{token}", include_in_schema=False)
+async def open_short_link(token: str = PathParam(pattern=r"^[\w.-]+$")) -> RedirectResponse:
+  return RedirectResponse(
+    f"/#/link/{token}",
+    status_code=307,
+    headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+  )
 
 if settings.static_dir and Path(settings.static_dir).is_dir():
   app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="inbox")

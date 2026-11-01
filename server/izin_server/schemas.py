@@ -13,6 +13,7 @@ from izin_server.models import (
 )
 
 SLACK_ID = r"^[UW][A-Z0-9]{2,20}$"
+E164 = r"^\+[1-9]\d{6,14}$"
 
 class StepIn(BaseModel):
   role: str | None = Field(default=None, max_length=100)
@@ -75,6 +76,8 @@ class MeOut(BaseModel):
   name: str
   roles: list[str]
   available: bool
+  phone: str | None
+  whatsapp_opted_in_at: datetime | None
   
 class InboxDecisionIn(BaseModel):
   verdict: Verdict
@@ -185,3 +188,6 @@ class OutboxOut(BaseModel):
 
 class SlackLink(BaseModel):
   slack_user_id: str | None = Field(default=None, pattern=SLACK_ID)
+
+class WhatsAppOptIn(BaseModel):
+  phone: str = Field(pattern=E164)

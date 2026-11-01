@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
@@ -67,4 +68,19 @@ async def set_slack_user(
   except IntegrityError as e:
     raise InvalidInput("that Slack account is already linked to another principal") from e
   await session.refresh(principal)
+  return principal
+
+async def opt_in_whatsapp(session: AsyncSession, principal: Principal, phone: str) -> Principal:
+  principal.phone = phone
+  principal.whatsapp_opted_in_at = datetime.now(UTC)
+  await session.commit()
+  await session.refresh(principal)
+  log.info("principal %s opted in to WhatsApp", principal.id)
+  return principal
+
+async def opt_out_whatsapp(session: AsyncSession, principal: Principal) -> Principal:
+  principal.whatsapp_opted_in_at = None
+  await session.commit()
+  await session.refresh(principal)
+  log.info("principal %s opted out of WhatsApp", principal.id)
   return principal

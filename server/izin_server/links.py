@@ -2,6 +2,8 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -79,3 +81,14 @@ async def decide_by_link(
   if await _risk(session, claims.request_id) not in LINK_DECIDES:
     raise Forbidden("Sign in to the inbox to decide high-risk requests.")
   await decide(session, claims.request_id, principal, body, step=claims.step, via="link")
+
+class RedactLinkTokens(logging.Filter):
+  """Keep /l/<token> paths out of uvicorn's access log."""
+  PATTERN = re.compile(r"/l/[\w.-]+")
+
+  def filter(self, record: logging.LogRecord) -> bool:
+    if isinstance(record.args, tuple):
+      record.args = tuple(
+        self.PATTERN.sub("/l/<redacted>", a) if isinstance(a, str) else a for a in record.args
+      )
+    return True

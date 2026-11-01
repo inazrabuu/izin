@@ -31,4 +31,10 @@ class Settings(BaseSettings):
   slack_signing_secret: str | None = None
   slack_api_url: str = "https://slack.com/api"
 
+  whatsapp_token: str | None = None
+  whatsapp_phone_number_id: str | None = None
+  whatsapp_api_url: str = "https://graph.facebook.com/v23.0"
+  whatsapp_template: str = "izin_approval_request"
+  whatsapp_template_lang: str = "en"
+
 settings = Settings()

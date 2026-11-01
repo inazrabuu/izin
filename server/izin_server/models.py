@@ -134,6 +134,7 @@ class Principal(Base):
   token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
   created_at: Mapped[datetime] = created_at()
   slack_user_id: Mapped[str | None] = mapped_column(String(32), unique=True)
+  whatsapp_opted_in_at: Mapped[datetime | None]
 
 # -------------------- the request path ------------------------
 class Request(Base):
