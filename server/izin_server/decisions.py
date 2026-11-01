@@ -23,7 +23,7 @@ from izin_server.models import (
   Verdict,
 )
 from izin_server.modify import changes_between, prepare_modify
-from izin_server.notify import emit
+from izin_server.notify import emit, refresh_slack
 from izin_server.schemas import DecisionOut, DecisionStatusOut, InboxDecisionIn
 from izin_server.system import SYSTEM_PRINCIPAL_IDS
 
@@ -110,6 +110,7 @@ async def write_decision(
     session, request_id, "request.decided",
     verdict=verdict.value, automatic=principal_id in SYSTEM_PRINCIPAL_IDS
   )
+  await refresh_slack(session, request_id, "request.decided", "-")
 
   return True
 
@@ -149,7 +150,7 @@ async def decide(
 def _already_decide(view: DecisionStatusOut) -> AlreadyDecided:
   d = view.decision
   if d is not None:
-    return AlreadyDecided(f"Already {PAST_TENSE[d.verdict]} by {d.principal_name} ")
+    return AlreadyDecided(f"Already {PAST_TENSE[d.verdict]} by {d.principal_name}")
   if view.status == RequestStatus.PENDING:
     return AlreadyDecided("This request has expired and is being closed.")
   return AlreadyDecided(f"This request is {view.status.value.lower()}, not pending.")

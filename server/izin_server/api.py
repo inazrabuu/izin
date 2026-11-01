@@ -1,8 +1,12 @@
+import json
 import uuid
 from typing import Annotated
+from urllib.parse import parse_qs
 
+import httpx
 from fastapi import APIRouter, Depends, Header, Path, Query, Response
 from fastapi import Request as HTTPRequest
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from izin_server.actions import upsert_action
@@ -10,11 +14,17 @@ from izin_server.auth import current_principal, require_admin, require_agent
 from izin_server.creation import create_request
 from izin_server.db import get_session
 from izin_server.decisions import consume, decide, wait_for_decision
+from izin_server.errors import Unauthorized
 from izin_server.inbox import list_inbox, load_detail
 from izin_server.links import decide_by_link, link_view, open_link
 from izin_server.models import OutboxStatus, Principal
 from izin_server.notify import list_outbox, retry_delivery
-from izin_server.principals import create_principal, rotate_token, set_availability
+from izin_server.principals import (
+  create_principal,
+  rotate_token,
+  set_availability,
+  set_slack_user,
+)
 from izin_server.schemas import (
   ActionIn,
   ActionOut,
@@ -30,7 +40,9 @@ from izin_server.schemas import (
   PrincipalOut,
   RequestIn,
   RequestOut,
+  SlackLink,
 )
+from izin_server.slack import handle_interaction, verify_slack
 
 # router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 admin_router = APIRouter(prefix="/v1", dependencies=[Depends(require_admin)])
@@ -72,6 +84,22 @@ async def get_outbox(
 @admin_router.post("/outbox/{outbox_id}/retry", response_model=OutboxOut)
 async def post_outbox_retry(outbox_id: int, session: Session):
   return await retry_delivery(session, outbox_id)
+
+@admin_router.put("/principals/{principal_id}/slack", response_model=PrincipalOut)
+async def put_principal_slack(principal_id: uuid.UUID, body: SlackLink, session: Session):
+  return await set_slack_user(session, principal_id, body.slack_user_id)
+
+slack_router = APIRouter(prefix="/v1/slack")
+
+@slack_router.post("/interactions")
+async def post_slack_interaction(request: HTTPRequest, session: Session):
+  body = await request.body()  
+  if not verify_slack(request.headers, body):
+    raise Unauthorized("bad Slack signature")
+  payload = json.loads(parse_qs(body.decode())["payload"][0])
+  async with httpx.AsyncClient(timeout=2.0) as http:
+    result = await handle_interaction(session, http, payload)
+  return JSONResponse(result) if result else Response(status_code=200)
 
 agent_router = APIRouter(prefix="/v1", dependencies=[Depends(require_agent)])
 

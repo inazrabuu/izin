@@ -36,6 +36,8 @@ x-app: &app
     IZIN_HUMAN_CHANNELS: '${IZIN_HUMAN_CHANNELS:-["email"]}'
     IZIN_LINK_SECRET: ${IZIN_LINK_SECRET:-dev-link-secret}
     IZIN_PUBLIC_URL: ${IZIN_PUBLIC_URL:-http://localhost:8000}
+    IZIN_SLACK_BOT_TOKEN: ${IZIN_SLACK_BOT_TOKEN:-}
+    IZIN_SLACK_SIGNING_SECRET: ${IZIN_SLACK_SIGNING_SECRET:-}
   depends_on:
     migrate:
       condition: service_completed_successfully

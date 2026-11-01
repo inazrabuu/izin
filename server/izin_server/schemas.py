@@ -12,6 +12,7 @@ from izin_server.models import (
   Verdict,
 )
 
+SLACK_ID = r"^[UW][A-Z0-9]{2,20}$"
 
 class StepIn(BaseModel):
   role: str | None = Field(default=None, max_length=100)
@@ -55,6 +56,7 @@ class PrincipalIn(BaseModel):
   email: str | None = Field(default=None, max_length=320)
   phone: str | None = Field(default=None, max_length=32)
   roles: list[str] = Field(default_factory=list)
+  slack_user_id: str | None = Field(default=None, pattern=SLACK_ID)
 
 class PrincipalOut(PrincipalIn):
   model_config = ConfigDict(from_attributes=True)
@@ -180,3 +182,6 @@ class OutboxOut(BaseModel):
   last_error: str | None
   next_attempt_at: datetime
   created_at: datetime
+
+class SlackLink(BaseModel):
+  slack_user_id: str | None = Field(default=None, pattern=SLACK_ID)

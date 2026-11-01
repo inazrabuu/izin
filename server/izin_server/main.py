@@ -11,7 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from izin_server.api import admin_router, agent_router, inbox_router, link_router
+from izin_server.api import (
+  admin_router,
+  agent_router,
+  inbox_router,
+  link_router,
+  slack_router,
+)
 from izin_server.config import settings
 from izin_server.db import engine, get_session
 from izin_server.errors import IzinError
@@ -33,6 +39,7 @@ app.include_router(admin_router)
 app.include_router(agent_router)
 app.include_router(inbox_router)
 app.include_router(link_router)
+app.include_router(slack_router)
 
 @app.get("/healthz")
 async def healthz(response: Response, session: Annotated[AsyncSession, Depends(get_session)]):

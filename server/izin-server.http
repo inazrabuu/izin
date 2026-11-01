@@ -1,6 +1,7 @@
 @H = 'Authorization: Bearer dev-token'
 @HA = 'Authorization: Bearer dev-admin-token'
 @J = 'content-type: application/json'
+@ANA=a707969a-2614-4653-848b-f733ab3540fd
 curl -s -X POST http://localhost:8000/v1/principals -H {{HA}} -H {{J}} \
   -d '{"name": "Ana", "roles": ["approver"]}'
 
@@ -18,6 +19,11 @@ curl -s -X PUT http://localhost:8000/v1/actions/refund_order -H {{HA}} \
 
 curl -s -X POST http://localhost:8000/v1/requests -H {{H}} -H {{J}} \
 -d @examples/request_refund.json
+
+###
+
+curl -si -X PUT http://localhost:8000/v1/principals/{{ANA}}/slack -H {{HA}} -H {{J}} \
+  -d '{"slack_user_id": "U29AGHZ19"}'
 
 ###
 

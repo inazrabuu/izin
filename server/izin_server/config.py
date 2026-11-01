@@ -27,4 +27,8 @@ class Settings(BaseSettings):
   smtp_from: str = "izin <izin@localhost>"
   link_secret: str = "dev-link_secret"
 
+  slack_bot_token: str | None = None
+  slack_signing_secret: str | None = None
+  slack_api_url: str = "https://slack.com/api"
+
 settings = Settings()

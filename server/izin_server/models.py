@@ -133,6 +133,7 @@ class Principal(Base):
   available: Mapped[bool] = mapped_column(server_default=text("true"))
   token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
   created_at: Mapped[datetime] = created_at()
+  slack_user_id: Mapped[str | None] = mapped_column(String(32), unique=True)
 
 # -------------------- the request path ------------------------
 class Request(Base):
@@ -237,3 +238,15 @@ class Outbox(Base):
   principal_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("principals.id"))
   dedupe_key: Mapped[str] = mapped_column(Text, unique=True)
   give_up_after: Mapped[int] = mapped_column(server_default=text("8"))
+
+class SlackMessage(Base):
+  __tablename__ = "slack_messages"
+  __table_args__ = (UniqueConstraint("channel", "ts"),)
+
+  id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+  request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("requests.id"), index=True)
+  principal_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("principals.id"))
+  step: Mapped[int]
+  channel: Mapped[str] = mapped_column(String(32))
+  ts: Mapped[str] = mapped_column(String(32))
+  created_at: Mapped[datetime] = created_at()

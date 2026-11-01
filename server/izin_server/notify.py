@@ -14,6 +14,7 @@ from izin_server.models import (
   Principal,
   Request,
   RequestEvent,
+  SlackMessage,
 )
 
 MAX_ATTEMPTS = 8
@@ -118,3 +119,12 @@ async def retry_delivery(session: AsyncSession, outbox_id: int) -> Outbox:
   )
   await session.commit()
   return row
+
+async def refresh_slack(session: AsyncSession, request_id: uuid.UUID, event: str, key: str) -> None:
+  ids = await session.scalars(select(SlackMessage.id).where(SlackMessage.request_id == request_id))
+  for message_id in ids:
+    await enqueue(
+      session, request_id,
+      event=event, channel="slack", key=f"{key}:{message_id}",
+      payload={"event": event, "message_id": message_id},
+    )

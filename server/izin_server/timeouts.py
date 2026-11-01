@@ -17,7 +17,7 @@ from izin_server.models import (
   Route,
   Verdict,
 )
-from izin_server.notify import emit
+from izin_server.notify import emit, refresh_slack
 from izin_server.routing import close_unroutable, route_to
 from izin_server.system import TIMEOUT_PRINCIPAL_ID
 
@@ -88,6 +88,7 @@ async def _escalate(
     session, request_id, "request.escalated",
     key=str(to_step), from_step=from_step, to_step=to_step
   )
+  await refresh_slack(session, request_id, "request.escalated", str(to_step))
   return "escalated"
 
 async def _expire(session: AsyncSession, request_id: uuid.UUID, plan: dict[str, Any]) -> Verdict:

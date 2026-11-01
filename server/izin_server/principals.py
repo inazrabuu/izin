@@ -20,7 +20,7 @@ async def create_principal(session: AsyncSession, body: PrincipalIn) -> tuple[Pr
   try:
     await session.commit()
   except IntegrityError as e:
-    raise InvalidInput("a principal with this email already exists") from e
+    raise InvalidInput("a principal with this email or Slack account already exists") from e
   await session.refresh(principal)
   return principal, token
 
@@ -52,3 +52,19 @@ async def set_availability(
   await session.commit()
   log.info("principal %s marked %s by %s", principal_id, "available" if available else "away", by)
   return available
+
+async def set_slack_user(
+  session: AsyncSession, principal_id: uuid.UUID, slack_user_id: str | None
+) -> Principal:
+  if principal_id in SYSTEM_PRINCIPAL_IDS:
+    raise Forbidden("system principals have no Slack account")
+  principal = await session.get(Principal, principal_id)
+  if principal is None:
+    raise NotFound("principal not found")
+  principal.slack_user_id = slack_user_id
+  try:
+    await session.commit()
+  except IntegrityError as e:
+    raise InvalidInput("that Slack account is already linked to another principal") from e
+  await session.refresh(principal)
+  return principal

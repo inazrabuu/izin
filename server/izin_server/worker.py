@@ -12,11 +12,13 @@ import httpx
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from izin_server.assignments import Permanent, Stale
 from izin_server.config import settings
 from izin_server.db import SessionLocal, engine
-from izin_server.mail import Permanent, Stale, send_assignment
+from izin_server.mail import send_assignment
 from izin_server.models import Outbox, OutboxStatus, RequestEvent
 from izin_server.notify import MAX_ATTEMPTS
+from izin_server.slack import SlackRetry, post_assignment, update_message
 from izin_server.timeouts import sweep_once
 from izin_server.webhooks import encode_body, sign
 
@@ -84,6 +86,9 @@ async def deliver_email(item: Claimed) -> Outcome:
 async def deliver(
   http: httpx.AsyncClient, item: Claimed, url: str | None, secret: str
 ) -> Outcome:
+  if item.channel == "slack":
+    return await deliver_slack(http, item)
+  
   if item.channel == "email":
     return await deliver_email(item)
   
@@ -207,6 +212,20 @@ async def main() -> None:
 
   await engine.dispose()
   log.info("worker stopped")
+
+async def deliver_slack(http: httpx.AsyncClient, item: Claimed) -> Outcome:
+  try:
+    if item.payload["event"] == "request.assigned":
+      await post_assignment(http, item.request_id, item.principal_id, item.payload)
+    else:
+      await update_message(http, item.payload)
+  except Stale as e:
+    return Outcome(ok=True, skipped=True, error=str(e))
+  except Permanent as e:
+    return Outcome(ok=False, permanent=True, error=str(e))
+  except (SlackRetry, httpx.HTTPError) as e:
+    return Outcome(ok=False, error=f"{type(e).__name__}: {e}")
+  return Outcome(ok=True)
 
 if __name__ == "__main__":
   asyncio.run(main())
