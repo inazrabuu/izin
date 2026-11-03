@@ -500,10 +500,12 @@ langgraph = [
 
 [package.metadata]
 requires-dist = [
+    { name = "claude-agent-sdk", marker = "extra == 'claude-agent'" },
+    { name = "crewai", marker = "extra == 'crewai'" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1.2.15" },
 ]
-provides-extras = ["langgraph"]
+provides-extras = ["langgraph", "crewai", "claude-agent"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.1" }]

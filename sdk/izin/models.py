@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
+
 @dataclass(frozen=True)
 class Decision:
   request_id: str

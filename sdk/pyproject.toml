@@ -9,6 +9,8 @@ dependencies = ["httpx>=0.27"]
 langgraph = [
     "langgraph>=1.2.15",
 ]
+crewai = ["crewai"]
+claude-agent = ["claude-agent-sdk"]
 
 [build-system]
 requires = ["hatchling"]

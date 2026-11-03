@@ -1,17 +1,23 @@
-import contextlib
 import asyncio
+import contextlib
 import functools
 import inspect
 import logging
 from collections import Counter
-from typing import Any
+from typing import Any, Self
 
 import httpx
 
 from izin.canonical import args_hash, canonicalize, idempotency_key
 from izin.errors import (
-  ApprovalTimeout, AuthError, ConcurrentDuplicate, Denied, IdempotencyConflict, InvalidRequest,
-  IzinError, IzinUnavailable
+  ApprovalTimeout,
+  AuthError,
+  ConcurrentDuplicate,
+  Denied,
+  IdempotencyConflict,
+  InvalidRequest,
+  IzinError,
+  IzinUnavailable,
 )
 from izin.models import Decision, Pending
 
@@ -48,7 +54,7 @@ class Approvals:
     if self._owns_http:
       await self._http.aclose()
 
-  async def __aenter__(self) -> "Approvals":
+  async def __aenter__(self) -> Self:
     return self
 
   async def __aexit__(self, *exc: object) -> None:

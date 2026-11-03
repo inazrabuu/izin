@@ -7,6 +7,7 @@ import pytest
 from izin.canonical import args_hash, canonicalize, idempotency_key
 from izin.errors import NonCanonicalValue, SecretInArgs
 
+
 def test_key_order_does_not_matter():
   a = canonicalize({"order_id": "X", "customer": {"name": "D", "tier": 1}})
   b = canonicalize({"customer": {"tier": 1, "name": "D"}, "order_id": "X"})
