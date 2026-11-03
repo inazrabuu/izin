@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Response, status
 from fastapi import Path as PathParam
 from fastapi import Request as HTTPRequest
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -20,9 +21,10 @@ from izin_server.api import (
   slack_router,
 )
 from izin_server.config import settings
-from izin_server.db import engine, get_session
+from izin_server.db import get_session
 from izin_server.errors import IzinError
 from izin_server.links import RedactLinkTokens
+from izin_server.listener import listener
 
 log = logging.getLogger("izin")
 logging.getLogger("uvicorn.access").addFilter(RedactLinkTokens())
@@ -34,8 +36,9 @@ async def lifespan(app: FastAPI):
       "izin is running with default dev tokens. "
       "Set IZIN_ADMIN_TOKEN and IZIN_API_TOKEN before exposing it to the network you don't trust."
     )
+  listener.start()
   yield
-  await engine.dispose()
+  await listener.stop()
 
 app = FastAPI(title="izin", version=version("izin-server"), lifespan=lifespan)
 app.include_router(admin_router)
@@ -65,6 +68,19 @@ async def handle_izin_error(_: HTTPRequest, exc: IzinError) -> JSONResponse:
       }
     }
   )  
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(_: HTTPRequest, exc: RequestValidationError) -> JSONResponse:
+  fields = []
+  for err in exc.errors():
+    field = ".".join(str(p) for p in err["loc"] if p != "body") or "(body)"
+    fields.append({"field": field, "message": err["msg"].removeprefix("Value error, ")})
+  first = fields[0] if fields else {"field": "(request)", "message": "invalid request"}
+  message = first["message"] if first["field"] == "(body)" else f"{first['field']}: {first['message']}"
+  return JSONResponse(
+    status_code=422,
+    content={"error": {"code": "invalid_input", "message": message, "fields": fields}},
+  )
 
 @app.get("/l/{token}", include_in_schema=False)
 async def open_short_link(token: str = PathParam(pattern=r"^[\w.-]+$")) -> RedirectResponse:

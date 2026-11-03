@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -13,6 +14,7 @@ from izin_server.errors import (
   NotDecided,
   NotFound,
 )
+from izin_server.listener import listener
 from izin_server.models import (
   Decision,
   Principal,
@@ -28,6 +30,7 @@ from izin_server.schemas import DecisionOut, DecisionStatusOut, InboxDecisionIn
 from izin_server.system import SYSTEM_PRINCIPAL_IDS
 
 POLL_INTERVAL = 1.0
+SAFETY_RECHECK = 5.0
 
 NEXT_STATUS = {Verdict.APPROVE: RequestStatus.APPROVED, Verdict.DENY: RequestStatus.DENIED}
 PAST_TENSE = {Verdict.APPROVE: 'approved', Verdict.DENY: 'denied', Verdict.MODIFY: 'modified'}
@@ -208,13 +211,20 @@ async def wait_for_decision(
 ) -> DecisionStatusOut:
   loop = asyncio.get_running_loop()
   deadline = loop.time() + wait
-  while True:
-    async with SessionLocal() as session:
-      view = await load_view(session, request_id)
-    remaining = deadline - loop.time()
-    if view.status != RequestStatus.PENDING or remaining <= 0 or await is_disconnected():
-      return view
-    await asyncio.sleep(min(POLL_INTERVAL, remaining))
+  event = listener.subscribe(request_id)
+  try:
+    while True:
+      event.clear()
+      async with SessionLocal() as session:
+        view = await load_view(session, request_id)
+      remaining = deadline - loop.time()
+      if view.status != RequestStatus.PENDING or remaining <= 0 or await is_disconnected():
+        return view
+      interval = SAFETY_RECHECK if listener.connected else POLL_INTERVAL
+      with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(event.wait(), timeout=min(interval, remaining))
+  finally:
+    listener.unsubscribe(request_id, event)
 
 CONSUMABLE = (RequestStatus.APPROVED, RequestStatus.DENIED)
 
