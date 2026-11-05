@@ -3,6 +3,7 @@ import { linkClient, tokenStore } from "./api";
 import { InboxList } from "./screens/InboxList";
 import { RequestDetail } from "./screens/RequestDetail";
 import { SignIn } from "./screens/SignIn";
+import { Settings } from "./screens/Settings";
 
 function useHashRoute(): string {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -43,6 +44,8 @@ export default function App() {
     );
   }
   if (!token) return <SignIn onSignedIn={setToken} />;
+
+  if (hash === "#/settings") return <Settings onSignOut={signOut} />;
 
   return match ? (
     <RequestDetail key={match[1]} id={match[1]} onSignOut={signOut} />

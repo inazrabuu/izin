@@ -86,8 +86,10 @@ def test_render_screen_optional_parts():
     args=TRD_ARGS
   )
 
-  assert screen == {
+  plain = {k: screen[k] for k in ("headline", "blast_radius", "if_denied")}
+  assert plain == {
     "headline": "Refund Rp. 4.500.000 to Dewi. S for order ORD-1182.",
     "blast_radius": "Rp. 4.500.000 leaves the company account",
     "if_denied": None
   }
+  assert "if_denied" not in screen["segments"]

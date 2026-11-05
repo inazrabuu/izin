@@ -55,6 +55,7 @@ export function InboxList({ onSignOut }: { onSignOut: () => void }) {
             {me.available ? "Set Away" : "I'm back"}
           </button>
         )}
+        <a href="#/settings">Settings</a>
         <button className="link" onClick={onSignOut}>
           Sign Out
         </button>

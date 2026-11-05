@@ -222,3 +222,15 @@ textarea {
   background: var(--card);
   color: var(--text);
 }
+
+mark.agent {
+  background: #fff3bf;
+  color: inherit;
+  padding: 0 0.15em;
+  border-radius: 3px;
+}
+@media (prefers-color-scheme: dark) {
+  mark.agent {
+    background: #5c4a00;
+  }
+}

@@ -6,6 +6,7 @@ from jinja2 import StrictUndefined, Template, TemplateError, meta
 from jinja2.sandbox import SandboxedEnvironment
 
 MAX_VALUE_LEN = 120
+OPEN, CLOSE = "\ue000", "\ue001"
 
 class RenderError(ValueError):
   """The template can't be rendered against these args. Maps to HTTP 422."""
@@ -23,6 +24,9 @@ def _clean(value: Any) -> str:
   text = str(value)
   chars = []
   for ch in text:
+    if ch in (OPEN, CLOSE):
+      continue
+
     cat = unicodedata.category(ch)
     if cat == "Cc":
       chars.append(" ")
@@ -37,10 +41,13 @@ def _clean(value: Any) -> str:
 
   return text
 
+def _mark(value: Any) -> str:
+  return OPEN + _clean(value) + CLOSE
+
 _env = SandboxedEnvironment(
   undefined=StrictUndefined,
   autoescape=False,
-  finalize=_clean
+  finalize=_mark,
 )
 _env.filters["rupiah"] = rupiah
 
@@ -55,7 +62,7 @@ def template_variables(source: str) -> set[str]:
   except TemplateError as e:
     raise RenderError(f"{type(e).__name__}: {e}") from e
 
-def render_text(source: str, args: dict[str, Any]) -> str:
+def _render_marked(source: str, args: dict[str, Any]) -> str:
   try:
     out = _compile(source).render(args)
   except RenderError:
@@ -64,8 +71,29 @@ def render_text(source: str, args: dict[str, Any]) -> str:
     raise RenderError(f"{type(e).__name__}: {e}") from e
   except (TypeError, ValueError, ArithmeticError) as e:
     raise RenderError(f"{type(e).__name__}: {e}") from e
-
   return " ".join(out.split())
+
+def _plain(marked: str) -> str:
+  return marked.replace(OPEN, "").replace(CLOSE, "")
+
+def _segments(marked: str) -> list[dict[str, Any]]:
+  segments: list[dict[str, Any]] = []
+  buffer: list[str] = []
+  agent = False
+  for ch in marked:
+    if ch in (OPEN, CLOSE):
+      if buffer:
+        segments.append({"text": "".join(buffer), "agent": agent})
+        buffer = []
+      agent = ch == OPEN
+    else:
+      buffer.append(ch)
+  if buffer:
+    segments.append({"text": "".join(buffer), "agent": agent})
+  return segments
+
+def render_text(source: str, args: dict[str, Any]) -> str:
+  return _plain(_render_marked(source, args))
 
 def render_screen(
   *,
@@ -73,10 +101,15 @@ def render_screen(
   blast_radius: str | None,
   if_denied: str | None,
   args: dict[str, Any],
-) -> dict[str, str | None]:
-  """The frozen screen stored in requests.rendered."""
-  return {
-    "headline": render_text(headline, args),
-    "blast_radius": render_text(blast_radius, args) if blast_radius else None,
-    "if_denied": render_text(if_denied, args) if if_denied else None
-  }
+) -> dict[str, Any]:
+  screen: dict[str, Any] = {}
+  segments: dict[str, list[dict[str, Any]]] = {}
+  for key, source in (("headline", headline), ("blast_radius", blast_radius), ("if_denied", if_denied)):
+    if source:
+      marked = _render_marked(source, args)
+      screen[key] = _plain(marked)
+      segments[key] = _segments(marked)
+    else:
+      screen[key] = None
+  screen["segments"] = segments
+  return screen

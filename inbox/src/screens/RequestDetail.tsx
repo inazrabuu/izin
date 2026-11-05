@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { api, ApiError, type DetailClient, type InboxDetail } from "../api";
 import { formatValue, timeAgo, truncateWords } from "../format";
+import { RenderedText } from "../RenderedText";
 
 const WHY_WORD_LIMIT = 40;
 
@@ -119,7 +120,12 @@ export function RequestDetail({
         </div>
 
         {/* 1. The sentence. Large. No JSON. */}
-        <p className="headline">{req.rendered.headline}</p>
+        <p className="headline">
+          <RenderedText
+            text={req.rendered.headline}
+            segments={req.rendered.segments?.headline}
+          />
+        </p>
 
         {/* 2. Why */}
         {why && (
@@ -140,7 +146,10 @@ export function RequestDetail({
         {req.rendered.blast_radius && (
           <section>
             <h2>If you approve</h2>
-            <p>{req.rendered.blast_radius}</p>
+            <RenderedText
+              text={req.rendered.blast_radius}
+              segments={req.rendered.segments?.blast_radius}
+            />
           </section>
         )}
 
@@ -149,6 +158,10 @@ export function RequestDetail({
           <section>
             <h2>If you deny</h2>
             <p>{req.rendered.if_denied}</p>
+            <RenderedText
+              text={req.rendered.if_denied}
+              segments={req.rendered.segments?.if_denied}
+            />
           </section>
         )}
 

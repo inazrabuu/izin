@@ -1,5 +1,19 @@
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 
+export interface Segment {
+  text: string;
+  agent: boolean;
+}
+
+type ScreenField = "headline" | "blast_radius" | "if_denied";
+
+export interface RenderedScreen {
+  headline: string;
+  blast_radius: string | null;
+  if_denied: string | null;
+  segments?: Partial<Record<ScreenField, Segment[]>> | null;
+}
+
 export interface InboxItem {
   id: string;
   action_display_name: string;
@@ -18,7 +32,7 @@ export interface Decision {
   decided_at: string;
   args: Record<string, unknown>;
   changes: Record<string, { from: unknown; to: unknown }> | null;
-  modified_screen: { headline: string } | null;
+  modified_screen: RenderedScreen | null;
 }
 
 export interface InboxDetail {
@@ -28,11 +42,7 @@ export interface InboxDetail {
   risk_level: RiskLevel;
   agent_name: string | null;
   rationale: string | null;
-  rendered: {
-    headline: string;
-    blast_radius: string | null;
-    if_denied: string | null;
-  };
+  rendered: RenderedScreen;
   context: Record<string, unknown>;
   args: Record<string, unknown>;
   created_at: string;
@@ -48,6 +58,8 @@ export interface Me {
   name: string;
   roles: string[];
   available: boolean;
+  phone: string | null;
+  whatsapp_opted_in_at: string | null;
 }
 
 export interface Editable {
@@ -155,4 +167,10 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ available }),
     }),
+  optInWhatsApp: (phone: string) =>
+    call<Me>("/me/whatsapp", {
+      method: "PUT",
+      body: JSON.stringify({ phone }),
+    }),
+  optOutWhatsApp: () => call<Me>("/me/whatsapp", { method: "DELETE" }),
 };

@@ -15,6 +15,16 @@ from izin_server.models import (
 SLACK_ID = r"^[UW][A-Z0-9]{2,20}$"
 E164 = r"^\+[1-9]\d{6,14}$"
 
+class Segment(BaseModel):
+  text: str
+  agent: bool
+
+class RenderedScreen(BaseModel):
+  headline: str
+  blast_radius: str | None = None
+  if_denied: str | None = None
+  segments: dict[str, list[Segment]] | None = None
+
 class StepIn(BaseModel):
   role: str | None = Field(default=None, max_length=100)
   principal_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -48,7 +58,7 @@ class RequestOut(BaseModel):
   args: dict[str, Any]
   rationale: str | None
   context: dict[str, Any]
-  rendered: dict[str, str | None]
+  rendered: RenderedScreen
   expires_at: datetime | None
   created_at: datetime
 
@@ -102,11 +112,6 @@ class InboxItem(BaseModel):
   expires_at: datetime | None
   due_at: datetime
 
-class RenderedScreen(BaseModel):
-  headline: str
-  blast_radius: str | None = None
-  if_denied: str | None = None
-
 class Availability(BaseModel):
   available: bool
 
@@ -147,7 +152,7 @@ class DecisionOut(BaseModel):
   decided_at: datetime
   args: dict[str, Any]
   changes: dict[str, Any] | None = None
-  modified_screen: dict[str, Any] | None = None
+  modified_screen: RenderedScreen | None = None
 
 class DecisionStatusOut(BaseModel):
   request_id: uuid.UUID
